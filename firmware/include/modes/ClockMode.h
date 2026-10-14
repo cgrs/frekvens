@@ -22,9 +22,14 @@ private:
         MediumWideFont::name,
     };
 
-    static inline bool ticking{true};
+    static constexpr std::array<Option, 2U> declared{
+        Option{"font", "Font", OptionType::choice, "format-font", fontNames},
+        Option{"ticking", "Second indicator", OptionType::boolean, "progress-clock"},
+    };
 
-    static inline std::string fontName{fontNames[0U]};
+    bool ticking{true};
+
+    uint8_t font{0U};
 
     tm local{};
 
@@ -36,23 +41,17 @@ private:
     int second{60U};
 
     void drawTicker(uint8_t brightness) const;
-    void setFont(std::string_view _fontName);
-    void setTicking(bool _ticking);
-    void transmit();
 
 public:
     static constexpr std::string_view name{"Clock"};
 
     explicit ClockMode() : ModeModule(name) {};
 
-    void configure() override;
     void begin() override;
     void handle() override;
-    void onReceive(JsonObjectConst payload, std::string_view source) override;
-
-#if EXTENSION_HOMEASSISTANT
-    void onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique) override;
-#endif
+    [[nodiscard]] std::span<const Option> options() const override { return declared; }
+    [[nodiscard]] uint8_t getOption(size_t index) const override;
+    void setOption(size_t index, uint8_t value) override;
 };
 
 #endif // MODE_CLOCK

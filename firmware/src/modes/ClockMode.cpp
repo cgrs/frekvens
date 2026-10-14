@@ -2,41 +2,12 @@
 
 #include "modes/ClockMode.h"
 
-#include "extensions/HomeAssistantExtension.h" // NOLINT(misc-include-cleaner)
 #include "handlers/TextHandler.h"
-#include "services/DeviceService.h"
 #include "services/DisplayService.h"
 #include "services/FontsService.h" // NOLINT(misc-include-cleaner)
 
-#include <nvs.h>
-
 static_assert(GRID_COLUMNS >= 16U, __STRING(MODE_CLOCK) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS >= 16U, __STRING(MODE_CLOCK) " is not compatible with this device's display size.");
-
-/**
- * @brief Loads persisted clock settings and publishes the active configuration.
- */
-void ClockMode::configure()
-{
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READONLY, &handle) == ESP_OK)
-    {
-        std::array<char, FontsService::namesMaxLength + 1U> _fontName{};
-        size_t length{_fontName.size()};
-        if (nvs_get_str(handle, "font", _fontName.data(), &length) == ESP_OK &&
-            std::ranges::find(fontNames, std::string_view{_fontName.data(), length - 1U}) != fontNames.end())
-        {
-            fontName.assign(_fontName.data(), length - 1U);
-        }
-        uint8_t _ticking{0U};
-        if (nvs_get_u8(handle, "ticking", &_ticking) == ESP_OK)
-        {
-            ticking = static_cast<bool>(_ticking);
-        }
-        nvs_close(handle);
-    }
-    transmit();
-}
 
 /**
  * @brief Marks the clock display for redraw.
@@ -57,11 +28,11 @@ void ClockMode::handle()
 #if CLOCK_12H
             const int hour{(local.tm_hour + 11) % 12 + 1};
 #endif // CLOCK_12H
-            const std::unique_ptr<const FontModule> font{Fonts.get(fontName)};
-            const TextHandler hh1(std::to_string(hour / 10), *font);
-            const TextHandler hh2(std::to_string(hour % 10), *font);
-            const TextHandler mm1(std::to_string(minute / 10), *font);
-            const TextHandler mm2(std::to_string(minute % 10), *font);
+            const std::unique_ptr<const FontModule> fontModule{Fonts.get(fontNames[font])};
+            const TextHandler hh1(std::to_string(hour / 10), *fontModule);
+            const TextHandler hh2(std::to_string(hour % 10), *fontModule);
+            const TextHandler mm1(std::to_string(minute / 10), *fontModule);
+            const TextHandler mm2(std::to_string(minute % 10), *fontModule);
             const uint8_t fontWidth{max({hh1.getWidth(), hh2.getWidth(), mm1.getWidth(), mm2.getWidth()})};
             strikethrough = mm2.getHeight() > 6U;
             Display.fillFrame(0U);
@@ -114,122 +85,31 @@ void ClockMode::drawTicker(uint8_t brightness) const
     }
 }
 
-void ClockMode::setFont(std::string_view _fontName)
-{
-    if (std::ranges::find(FontsService::names, _fontName) != FontsService::names.end())
-    {
-        fontName = _fontName;
-        nvs_handle_t handle{};
-        if (nvs_open(name.data(), nvs_open_mode_t::NVS_READWRITE, &handle) == ESP_OK)
-        {
-            nvs_set_str(handle, "font", fontName.c_str());
-            nvs_commit(handle);
-            nvs_close(handle);
-        }
-        pending = true;
-        transmit();
-    }
-}
+/**
+ * @brief Gets the value of an option.
+ *
+ * @param index Index into the declared options.
+ * @return The font index or whether the second indicator is shown.
+ */
+uint8_t ClockMode::getOption(size_t index) const { return index == 0U ? font : static_cast<uint8_t>(ticking); }
 
-void ClockMode::setTicking(bool _ticking)
+/**
+ * @brief Sets the font or the second indicator and marks the display for redraw.
+ *
+ * @param index Index into the declared options.
+ * @param value Font index or whether the second indicator is shown.
+ */
+void ClockMode::setOption(size_t index, uint8_t value)
 {
-    ticking = _ticking;
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READWRITE, &handle) == ESP_OK)
+    if (index == 0U)
     {
-        nvs_set_u8(handle, "ticking", static_cast<uint8_t>(ticking)); // NOLINT(readability-implicit-bool-conversion)
-        nvs_commit(handle);
-        nvs_close(handle);
+        font = value;
+    }
+    else
+    {
+        ticking = value != 0U;
     }
     pending = true;
-    transmit();
 }
-
-/**
- * @brief Publishes the current clock font and second-indicator configuration.
- */
-void ClockMode::transmit()
-{
-    JsonDocument doc{};
-    doc["font"].set(fontName);
-    JsonArray _fonts{doc["fonts"].to<JsonArray>()};
-    for (const std::string_view _font : fontNames)
-    {
-        _fonts.add(_font);
-    }
-    doc["ticking"].set(ticking);
-    Device.transmit(doc.as<JsonObjectConst>(), name);
-}
-
-/**
- * @brief Applies supported font and second-indicator settings from a received payload.
- *
- * @param payload Received configuration fields.
- * @param source Source identifier for the received payload.
- */
-void ClockMode::onReceive(JsonObjectConst payload, std::string_view source)
-{
-    // Font
-    if (payload["font"].is<std::string_view>())
-    {
-        setFont(payload["font"].as<std::string_view>());
-    }
-    // Ticking
-    if (payload["ticking"].is<bool>())
-    {
-        setTicking(payload["ticking"].as<bool>());
-    }
-}
-
-#if EXTENSION_HOMEASSISTANT
-/**
- * @brief Adds Home Assistant discovery definitions for the clock font selector and second indicator.
- *
- * @param discovery JSON document to populate with component definitions.
- * @param topic Base topic used for component commands and state updates.
- * @param unique Prefix used to generate unique component identifiers.
- */
-void ClockMode::onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique)
-{
-    topic.append(name);
-    {
-        const std::string id{std::string(name).append("_font")};
-        JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};
-        component[HomeAssistantAbbreviations::command_template].set(R"({"font":"{{value}}"})");
-        component[HomeAssistantAbbreviations::command_topic].set(topic + "/set");
-        component[HomeAssistantAbbreviations::enabled_by_default].set(false);
-        component[HomeAssistantAbbreviations::entity_category].set("config");
-        component[HomeAssistantAbbreviations::icon].set("mdi:format-font");
-        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" font"));
-        JsonArray options{component[HomeAssistantAbbreviations::options].to<JsonArray>()};
-        for (const std::string_view _font : fontNames)
-        {
-            options.add(_font);
-        }
-        component[HomeAssistantAbbreviations::platform].set("select");
-        component[HomeAssistantAbbreviations::state_topic].set(topic);
-        component[HomeAssistantAbbreviations::unique_id].set(unique + id);
-        component[HomeAssistantAbbreviations::value_template].set("{{value_json.font}}");
-    }
-    {
-        const std::string id{std::string(name).append("_ticking")};
-        JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};
-        component[HomeAssistantAbbreviations::command_template].set(R"({"ticking":{{value}}})");
-        component[HomeAssistantAbbreviations::command_topic].set(topic + "/set");
-        component[HomeAssistantAbbreviations::enabled_by_default].set(false);
-        component[HomeAssistantAbbreviations::entity_category].set("config");
-        component[HomeAssistantAbbreviations::icon].set("mdi:progress-clock");
-        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" second indicator"));
-        component[HomeAssistantAbbreviations::payload_off].set("false");
-        component[HomeAssistantAbbreviations::payload_on].set("true");
-        component[HomeAssistantAbbreviations::platform].set("switch");
-        component[HomeAssistantAbbreviations::state_off].set("False");
-        component[HomeAssistantAbbreviations::state_on].set("True");
-        component[HomeAssistantAbbreviations::state_topic].set(topic);
-        component[HomeAssistantAbbreviations::unique_id].set(unique + id);
-        component[HomeAssistantAbbreviations::value_template].set("{{value_json.ticking}}");
-    }
-}
-#endif // EXTENSION_HOMEASSISTANT
 
 #endif // MODE_CLOCK

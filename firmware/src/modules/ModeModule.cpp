@@ -4,6 +4,7 @@
 #include "services/DeviceService.h"
 
 #include <algorithm>
+#include <cctype>
 #include <nvs.h>
 #include <string>
 
@@ -164,7 +165,9 @@ void ModeModule::onHomeAssistant(JsonDocument &discovery, std::string topic, std
         {
             component[HomeAssistantAbbreviations::icon].set(std::string("mdi:").append(option.icon));
         }
-        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" ").append(key));
+        std::string label{option.label};
+        std::ranges::transform(label, label.begin(), [](unsigned char chr) { return std::tolower(chr); });
+        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" ").append(label));
         component[HomeAssistantAbbreviations::state_topic].set(topic);
         component[HomeAssistantAbbreviations::unique_id].set(unique + id);
         component[HomeAssistantAbbreviations::value_template].set("{{value_json." + key + "}}");

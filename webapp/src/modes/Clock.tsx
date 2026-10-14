@@ -18,9 +18,14 @@ const [getFont, setFont] = createSignal<string>("");
 const [getFonts, setFonts] = createSignal<string[]>([]);
 const [getTicking, setTicking] = createSignal<boolean>(false);
 
-export const receiver = (json: { font?: string; fonts?: string[]; ticking?: boolean }) => {
+export const receiver = (json: {
+    font?: string;
+    ticking?: boolean;
+    options?: { key: string; choices?: string[] }[];
+}) => {
     json?.font !== undefined && setFont(json.font);
-    json?.fonts !== undefined && setFonts(json.fonts);
+    const choices = json?.options?.find((option) => option.key === "font")?.choices;
+    choices !== undefined && setFonts(choices);
     json?.ticking !== undefined && setTicking(json.ticking);
 };
 

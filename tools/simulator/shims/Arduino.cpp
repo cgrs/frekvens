@@ -15,8 +15,9 @@ long random(long min, long max)
 }
 void randomSeed(unsigned long seed) { engine.seed(static_cast<std::mt19937::result_type>(seed)); }
 
+// Fixed start (2026-01-01 12:00:00 UTC) plus virtual time, so runs and frames are reproducible.
 bool getLocalTime(struct tm *info, uint32_t)
 {
-    const time_t now{time(nullptr)};
-    return localtime_r(&now, info) != nullptr;
+    const time_t now{1767268800 + static_cast<time_t>(clockMs / 1000UL)};
+    return gmtime_r(&now, info) != nullptr;
 }

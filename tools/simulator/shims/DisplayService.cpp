@@ -7,4 +7,17 @@ DisplayService &Display{*new DisplayService()};
 
 #include "services/DeviceService.h"
 
+#include <cstdio>
+#include <string>
+
 DeviceService &Device{*new DeviceService()};
+
+void DeviceService::transmit(JsonObjectConst payload, std::string_view source, bool retain)
+{
+    if (verbose)
+    {
+        std::string json;
+        serializeJson(payload, json);
+        std::printf("state %.*s %s\n", static_cast<int>(source.size()), source.data(), json.c_str());
+    }
+}

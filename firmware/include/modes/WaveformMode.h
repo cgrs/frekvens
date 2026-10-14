@@ -160,28 +160,26 @@ private:
         smooth,
     };
 
+    static constexpr std::array<Option, 1U> declared{
+        Option{"wave", "Wave", OptionType::choice, "waveform", waveNames},
+    };
+
     static inline Wave wave{Wave::mixed};
 
     unsigned long lastMillis{0UL};
 
     void draw();
-    void setWave(std::string_view waveName);
-
-    void transmit();
 
 public:
     static constexpr std::string_view name{"Waveform"};
 
     explicit WaveformMode() : ModeModule(name) {};
 
-    void configure() override;
     void handle() override;
 
-    void onReceive(JsonObjectConst payload, std::string_view source) override;
-
-#if EXTENSION_HOMEASSISTANT
-    void onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique) override;
-#endif
+    [[nodiscard]] std::span<const Option> options() const override { return declared; }
+    [[nodiscard]] uint8_t getOption(size_t index) const override;
+    void setOption(size_t index, uint8_t value) override;
 };
 
 #endif // MODE_WAVEFORM

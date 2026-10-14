@@ -79,6 +79,8 @@ private:
 
     static void onTask(void *parameter = nullptr);
 
+    [[nodiscard]] std::unique_ptr<ModeModule> makeMode(std::string_view modeName);
+
 public:
     static constexpr uint16_t stackSize{1U << 13U}; // 8 kB
 

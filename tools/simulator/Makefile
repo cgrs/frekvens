@@ -14,7 +14,7 @@ MODES := Arrow AutoWalker BinaryEpoch Blinds Blink BreakoutClock Bright Circle C
 	MeteorShower Metaballs PongClock Radar Rain Scanlines SpaceInvaders SparkleField Spiral Spotlight Stars \
 	Tetris Tron Wave WaveBars
 
-DEFS := -DNAME='"$(DEVICE)"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1) -DSIM_FREKVENS=$(if $(filter frekvens,$(DEVICE)),1,0) -DSIM_DEVICE_NAME='"$(if $(filter frekvens,$(DEVICE)),IKEA Frekvens,IKEA Obegränsad)"'
+DEFS := -DEXTENSION_HOMEASSISTANT=1 -DNAME='"$(DEVICE)"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1) -DSIM_FREKVENS=$(if $(filter frekvens,$(DEVICE)),1,0) -DSIM_DEVICE_NAME='"$(if $(filter frekvens,$(DEVICE)),IKEA Frekvens,IKEA Obegränsad)"'
 CXXFLAGS := -std=c++20 -O2 -Wall -Wextra -Wno-unused-parameter -Wno-reorder-ctor -Wno-sign-compare -Wno-unused-private-field -include Arduino.h -Ishims -Ibuild -I$(BUILD) -I$(FW)/include $(DEFS)
 SRCS := shims/Arduino.cpp shims/DisplayService.cpp shims/nvs.cpp \
 	$(FW)/src/modules/ModeModule.cpp $(FW)/src/modules/FontModule.cpp $(FW)/src/modules/HandlerModule.cpp $(FW)/src/modules/ServiceModule.cpp \
@@ -26,7 +26,7 @@ SRCS += src/Window.mm
 LDFLAGS := -framework Cocoa
 endif
 
-$(BUILD)/simulator: $(SRCS) src/Window.h build/ArduinoJson.h $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc
+$(BUILD)/simulator: $(SRCS) src/Window.h build/ArduinoJson.h $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
 	$(CXX) $(CXXFLAGS) $(SRCS) $(LDFLAGS) -o $@
 
 $(BUILD)/DisplayDraw.inc: $(FW)/src/services/DisplayService.cpp | $(BUILD)
@@ -49,7 +49,7 @@ clean:
 .PHONY: clean
 
 # Run every mode headless for 60 virtual seconds under ASan/UBSan; fails on out-of-range writes and the like.
-check: $(SRCS) build/ArduinoJson.h $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc
+check: $(SRCS) build/ArduinoJson.h $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
 	$(CXX) $(CXXFLAGS) -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all $(SRCS) $(LDFLAGS) -o $(BUILD)/simulator-check
 	@$(BUILD)/simulator-check list | while read -r mode; do \
 	  $(BUILD)/simulator-check "$$mode" --plain --seconds 60 >/dev/null || { echo "FAIL: $$mode"; exit 1; }; \
@@ -62,3 +62,6 @@ ARDUINOJSON := 7.4.3
 build/ArduinoJson.h:
 	mkdir -p build
 	curl -fsSL -o $@ https://github.com/bblanchon/ArduinoJson/releases/download/v$(ARDUINOJSON)/ArduinoJson-v$(ARDUINOJSON).h
+
+$(BUILD)/HomeAssistantAbbreviations.inc: $(FW)/include/extensions/HomeAssistantExtension.h | $(BUILD)
+	awk '/^namespace HomeAssistantAbbreviations/ {on=1} on {print} on && /^}/ {exit}' $< > $@

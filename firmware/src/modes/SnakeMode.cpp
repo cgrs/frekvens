@@ -3,57 +3,27 @@
 #include "modes/SnakeMode.h"
 
 #include "config/constants.h"                  // NOLINT(misc-include-cleaner)
-#include "extensions/HomeAssistantExtension.h" // NOLINT(misc-include-cleaner)
 #include "fonts/MiniFont.h"                    // NOLINT(misc-include-cleaner)
 #include "handlers/TextHandler.h"              // NOLINT(misc-include-cleaner)
-#include "services/DeviceService.h"
 #include "services/DisplayService.h"
 
 #include <algorithm>
 #include <array>
-#include <nvs.h>
 
 static_assert(GRID_COLUMNS >= 16U, __STRING(MODE_SNAKE) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS >= 7U, __STRING(MODE_SNAKE) " is not compatible with this device's display size.");
 
 /**
- * @brief Restores the persisted clock setting and transmits the current configuration.
- */
-void SnakeMode::configure()
-{
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READONLY, &handle) == ESP_OK)
-    {
-        uint8_t _clock{0U};
-        if (nvs_get_u8(handle, "clock", &_clock) == ESP_OK && static_cast<bool>(_clock))
-        {
-            clock = std::make_unique<ClockHandler>();
-        }
-        nvs_close(handle);
-    }
-    transmit();
-}
-
-/**
- * @brief Restores the clock setting, clears the display and snake, and resets the animation stage.
+ * @brief Clears the display and snake, and resets the animation stage.
  */
 void SnakeMode::begin()
 {
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READONLY, &handle) == ESP_OK)
-    {
-        uint8_t _clock{0U};
-        if (nvs_get_u8(handle, "clock", &_clock) == ESP_OK && static_cast<bool>(_clock))
-        {
-            clock = std::make_unique<ClockHandler>();
-        }
-        nvs_close(handle);
-    }
     Display.fillFrame(0U);
     snakeClear();
     target = static_cast<size_t>(random(clock == nullptr ? 0L : static_cast<long>(5U * GRID_COLUMNS),
                                         static_cast<long>(GRID_COLUMNS * GRID_ROWS)));
     stage = Stage::READY;
+    began = true;
 }
 
 /**
@@ -399,90 +369,44 @@ void SnakeMode::setTarget()
 }
 
 /**
- * @brief Enables or disables the Snake mode clock.
+ * @brief Gets the value of an option.
  *
- * Attempts to persist the clock setting, updates the clock handler and target as needed,
- * and transmits the updated configuration.
- *
- * @param _clock Whether the clock should be enabled.
+ * @param index Index into the declared options.
+ * @return Whether the clock is enabled.
  */
-void SnakeMode::setClock(bool _clock)
+uint8_t SnakeMode::getOption(size_t index) const { return static_cast<uint8_t>(clock != nullptr); }
+
+/**
+ * @brief Enables or disables the clock.
+ *
+ * Before `begin()` it only creates or drops the clock handler; once running it also moves the target and
+ * clears the clock area.
+ *
+ * @param index Index into the declared options.
+ * @param value Whether the clock should be enabled.
+ */
+void SnakeMode::setOption(size_t index, uint8_t value)
 {
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READWRITE, &handle) == ESP_OK)
+    if (value != 0U)
     {
-        nvs_set_u8(handle, "clock", static_cast<uint8_t>(_clock)); // NOLINT(readability-implicit-bool-conversion)
-        nvs_commit(handle);
-        nvs_close(handle);
-    }
-    if (_clock)
-    {
-        clock = std::make_unique<ClockHandler>();
-        Display.setPixel(target, 0U);
-        setTarget();
+        if (clock == nullptr)
+        {
+            clock = std::make_unique<ClockHandler>();
+            if (began)
+            {
+                Display.setPixel(target, 0U);
+                setTarget();
+            }
+        }
     }
     else if (clock != nullptr)
     {
-        clock->clear();
+        if (began)
+        {
+            clock->clear();
+        }
         clock.reset();
     }
-    transmit();
 }
-
-/**
- * @brief Transmits the current clock-enabled state.
- */
-void SnakeMode::transmit()
-{
-    JsonDocument doc{};
-    doc["clock"].set(clock != nullptr);
-    Device.transmit(doc.as<JsonObjectConst>(), name);
-}
-
-/**
- * @brief Applies the clock setting from an incoming payload.
- *
- * @param payload Incoming JSON payload containing an optional boolean `clock` value.
- */
-void SnakeMode::onReceive(JsonObjectConst payload, std::string_view source)
-{
-    // Clock
-    if (payload["clock"].is<bool>())
-    {
-        setClock(payload["clock"].as<bool>());
-    }
-}
-
-#if EXTENSION_HOMEASSISTANT
-/**
- * @brief Adds the Snake mode clock switch to Home Assistant discovery data.
- *
- * @param discovery Home Assistant discovery document to update.
- * @param topic Base topic used for the switch's state and command messages.
- * @param unique Prefix used to generate the switch's unique identifier.
- */
-void SnakeMode::onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique)
-{
-    topic.append(name);
-    {
-        const std::string id{std::string(name).append("_clock")};
-        JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};
-        component[HomeAssistantAbbreviations::command_template].set(R"({"clock":{{value}}})");
-        component[HomeAssistantAbbreviations::command_topic].set(topic + "/set");
-        component[HomeAssistantAbbreviations::enabled_by_default].set(false);
-        component[HomeAssistantAbbreviations::entity_category].set("config");
-        component[HomeAssistantAbbreviations::icon].set("mdi:snake");
-        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" clock"));
-        component[HomeAssistantAbbreviations::payload_off].set("false");
-        component[HomeAssistantAbbreviations::payload_on].set("true");
-        component[HomeAssistantAbbreviations::platform].set("switch");
-        component[HomeAssistantAbbreviations::state_off].set("False");
-        component[HomeAssistantAbbreviations::state_on].set("True");
-        component[HomeAssistantAbbreviations::state_topic].set(topic);
-        component[HomeAssistantAbbreviations::unique_id].set(unique + id);
-        component[HomeAssistantAbbreviations::value_template].set("{{value_json.clock}}");
-    }
-}
-#endif // EXTENSION_HOMEASSISTANT
 
 #endif // MODE_SNAKE

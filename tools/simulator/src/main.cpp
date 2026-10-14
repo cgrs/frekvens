@@ -3,6 +3,10 @@
 //   simulator list
 //   simulator <mode> [--seconds N] [--fps N] [--tick MS] [--seed N] [--scale PT_PER_MM]
 //                    [--terminal | --plain | --png FILE] [--fast]
+//                    [--set KEY=VALUE]... [--state] [--ha]
+//
+// --set sends an option payload to the mode, --state prints what the mode publishes and --ha prints its Home
+// Assistant discovery components.
 //
 // On macOS the default is a window sized from the lamp's pixel pitch; --terminal draws ANSI LEDs instead,
 // --plain prints the last frame as text and --png FILE saves it as an image (both run without real-time pacing).
@@ -10,6 +14,7 @@
 // The mode code is the firmware's own; only the display, clock and random source are replaced.
 
 #include "modules/ModeModule.h"
+#include "services/DeviceService.h"
 #include "services/DisplayService.h"
 #include "Window.h"
 
@@ -23,6 +28,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <thread>
 
 namespace
@@ -107,12 +113,27 @@ int main(int argc, char **argv)
     bool terminal{true};
 #endif
     const char *png{nullptr};
+    std::vector<std::string> sets;
+    bool state{false};
+    bool ha{false};
     for (int i{2}; i < argc; ++i)
     {
         const std::string_view arg{argv[i]};
         if (arg == "--fast")
         {
             fast = true;
+        }
+        else if (arg == "--state")
+        {
+            state = true;
+        }
+        else if (arg == "--ha")
+        {
+            ha = true;
+        }
+        else if (i + 1 < argc && arg == "--set")
+        {
+            sets.emplace_back(argv[++i]);
         }
         else if (arg == "--terminal")
         {
@@ -176,9 +197,45 @@ int main(int argc, char **argv)
     }
     randomSeed(seed);
     std::unique_ptr<ModeModule> mode{entry->make()};
-    // Same order as ModesService::handle(): blank frame, then begin().
+    mode->loadOptions(); // ModesService::getMode() does this for every mode it creates
+    Device.verbose = state;
+    if (ha)
+    {
+        JsonDocument discovery;
+        mode->onHomeAssistant(discovery, "frekvens/", "unique_");
+        std::string json;
+        serializeJsonPretty(discovery, json);
+        std::printf("%s\n", json.c_str());
+        return 0;
+    }
+    // Same order as the firmware: configure() at boot, option payloads as they arrive, then begin().
     Display.fillFrame(0U);
     mode->configure();
+    for (const std::string &set : sets)
+    {
+        const size_t eq{set.find('=')};
+        if (eq == std::string::npos)
+        {
+            std::fprintf(stderr, "--set needs KEY=VALUE: %s\n", set.c_str());
+            return 2;
+        }
+        const std::string key{set.substr(0U, eq)};
+        const std::string value{set.substr(eq + 1U)};
+        JsonDocument payload;
+        if (value == "true" || value == "false")
+        {
+            payload[key].set(value == "true");
+        }
+        else if (!value.empty() && value.find_first_not_of("0123456789") == std::string::npos)
+        {
+            payload[key].set(std::strtol(value.c_str(), nullptr, 10));
+        }
+        else
+        {
+            payload[key].set(value);
+        }
+        mode->onReceive(payload.as<JsonObjectConst>(), "simulator");
+    }
     mode->begin();
 
     const unsigned frameMs{1000U / fps};

@@ -12,9 +12,10 @@ export const name = "Waveform";
 const [getWave, setWave] = createSignal<string>("");
 const [getWaves, setWaves] = createSignal<string[]>([]);
 
-export const receiver = (json: { wave?: string; waves?: string[] }) => {
+export const receiver = (json: { wave?: string; options?: { key: string; choices?: string[] }[] }) => {
     json?.wave !== undefined && setWave(json.wave);
-    json?.waves !== undefined && setWaves(json.waves);
+    const choices = json?.options?.find((option) => option.key === "wave")?.choices;
+    choices !== undefined && setWaves(choices);
 };
 
 export const Main: Component = () => (

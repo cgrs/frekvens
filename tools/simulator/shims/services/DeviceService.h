@@ -3,11 +3,13 @@
 #include <ArduinoJson.h>
 #include <string_view>
 
-// Modes publish their state through Device.transmit(); the simulator has nowhere to send it.
+// Modes publish their state through Device.transmit(); the simulator prints it when asked to.
 class DeviceService
 {
 public:
-    void transmit(JsonObjectConst payload, std::string_view source, bool retain = true) {}
+    bool verbose{false};
+
+    void transmit(JsonObjectConst payload, std::string_view source, bool retain = true);
 };
 
 extern DeviceService &Device;

@@ -108,12 +108,28 @@ void ModesService::setActive(bool active)
 }
 
 /**
- * @brief Creates a mode module for the specified mode name.
+ * @brief Creates a mode module with its persisted options restored.
  *
  * @param modeName Name of the mode to create.
  * @return A newly allocated mode module, or `nullptr` if the mode is unavailable or unknown.
  */
 std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
+{
+    std::unique_ptr<ModeModule> _mode{makeMode(modeName)};
+    if (_mode != nullptr)
+    {
+        _mode->loadOptions();
+    }
+    return _mode;
+}
+
+/**
+ * @brief Creates a mode module for the specified mode name.
+ *
+ * @param modeName Name of the mode to create.
+ * @return A newly allocated mode module, or `nullptr` if the mode is unavailable or unknown.
+ */
+std::unique_ptr<ModeModule> ModesService::makeMode(std::string_view modeName)
 {
 #if MODE_ANIMATION
     if (modeName == AnimationMode::name)

@@ -1,6 +1,6 @@
 # Host build of the firmware modes. Needs only a C++20 compiler.
-#   make            build ./build/obegransad/simulator
-#   make DEVICE=frekvens   (build/frekvens/simulator)
+#   ./simulator [--device obegransad|frekvens] <mode>   builds on demand, then runs
+#   make [DEVICE=frekvens]   builds only (build/<device>/simulator)
 # Not simulated: Animation, Countdown, Draw, Flies (need payloads to show anything), Stream, Weather and
 # HomeThermometer (network). The rest of the firmware modes run on the shims in shims/.
 
@@ -10,11 +10,11 @@ ROOT := ../..
 FW := $(ROOT)/firmware
 BUILD := build/$(DEVICE)
 
-MODES := Arrow AutoWalker BinaryEpoch Blinds Blink BreakoutClock Bright Circle Clock Equalizer Firework GameOfLife Glitter LeafFall Lines Noise PingPong PixelSequence Ring Scan Snake Ticker Waveform BigPong BouncingBall Bubbles Checkerboard Comet Face FallingSand FlappyBird MatrixRain \
+MODES := Countdown Arrow AutoWalker BinaryEpoch Blinds Blink BreakoutClock Bright Circle Clock Equalizer Firework GameOfLife Glitter LeafFall Lines Noise PingPong PixelSequence Ring Scan Snake Ticker Waveform BigPong BouncingBall Bubbles Checkerboard Comet Face FallingSand FlappyBird MatrixRain \
 	MeteorShower Metaballs PongClock Radar Rain Scanlines SpaceInvaders SparkleField Spiral Spotlight Stars \
 	Tetris Tron Wave WaveBars
 
-DEFS := -DEXTENSION_HOMEASSISTANT=1 -DNAME='"$(DEVICE)"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1) -DSIM_FREKVENS=$(if $(filter frekvens,$(DEVICE)),1,0) -DSIM_DEVICE_NAME='"$(if $(filter frekvens,$(DEVICE)),IKEA Frekvens,IKEA Obegränsad)"'
+DEFS := -DTIME_ZONE='"UTC"' -DEXTENSION_HOMEASSISTANT=1 -DNAME='"$(DEVICE)"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1) -DSIM_FREKVENS=$(if $(filter frekvens,$(DEVICE)),1,0) -DSIM_DEVICE_NAME='"$(if $(filter frekvens,$(DEVICE)),IKEA Frekvens,IKEA Obegränsad)"'
 CXXFLAGS := -std=c++20 -O2 -Wall -Wextra -Wno-unused-parameter -Wno-reorder-ctor -Wno-sign-compare -Wno-unused-private-field -include Arduino.h -Ishims -Ibuild -I$(BUILD) -I$(FW)/include $(DEFS)
 SRCS := shims/Arduino.cpp shims/Trigger.cpp shims/DisplayService.cpp shims/nvs.cpp \
 	$(FW)/src/modules/ModeModule.cpp $(FW)/src/modules/FontModule.cpp $(FW)/src/modules/HandlerModule.cpp $(FW)/src/modules/ServiceModule.cpp \

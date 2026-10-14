@@ -1,0 +1,32 @@
+#!/bin/bash
+# Runs the simulator for a device, building it first when its sources changed.
+#   ./simulator [--device obegransad|frekvens] <mode> [options]   (see src/main.cpp for the options)
+# The grid size is a compile-time constant of every mode, so each device is its own binary under build/<device>/.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+device=obegransad
+args=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+    --device)
+        [ $# -ge 2 ] || { echo "--device needs obegransad or frekvens" >&2; exit 2; }
+        device="$2"
+        shift 2
+        ;;
+    *)
+        args+=("$1")
+        shift
+        ;;
+    esac
+done
+case "$device" in
+obegransad | frekvens) ;;
+*)
+    echo "unknown device: $device (obegransad or frekvens)" >&2
+    exit 2
+    ;;
+esac
+
+make -s DEVICE="$device" "build/$device/simulator" >&2
+exec "build/$device/simulator" ${args[@]+"${args[@]}"}

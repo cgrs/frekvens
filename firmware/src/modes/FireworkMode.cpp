@@ -2,8 +2,8 @@
 
 #include "modes/FireworkMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_COLUMNS >= 4U, __STRING(MODE_FIREWORK) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS >= 4U, __STRING(MODE_FIREWORK) " is not compatible with this device's display size.");
@@ -35,9 +35,7 @@ void FireworkMode::handle()
  */
 void FireworkMode::pad()
 {
-#if EXTENSION_MICROPHONE
-    if (Extensions.Microphone().isTriggered())
-#endif // EXTENSION_MICROPHONE
+    if (Trigger::active())
     {
         rocketX = static_cast<uint8_t>(random(GRID_COLUMNS));
         rocketY = GRID_ROWS;

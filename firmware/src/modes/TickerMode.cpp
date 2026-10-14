@@ -5,8 +5,8 @@
 #include "extensions/HomeAssistantExtension.h" // NOLINT(misc-include-cleaner)
 #include "fonts/SmallFont.h"                   // NOLINT(misc-include-cleaner)
 #include "services/DeviceService.h"
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h" // NOLINT(misc-include-cleaner)
 #include "services/FontsService.h"      // NOLINT(misc-include-cleaner)
 
 #include <nvs.h>
@@ -97,12 +97,10 @@ void TickerMode::handle()
             offsetX = GRID_COLUMNS;
         }
         lastMillis = millis();
-#if EXTENSION_MICROPHONE
-        if (offsetX == GRID_COLUMNS && !Extensions.Microphone().isTriggered())
+        if (offsetX == GRID_COLUMNS && !Trigger::active())
         {
             return;
         }
-#endif // EXTENSION_MICROPHONE
         Display.fillFrame(0U);
         text->draw(offsetX, offsetY);
         --offsetX;

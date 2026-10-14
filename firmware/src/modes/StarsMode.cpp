@@ -2,8 +2,8 @@
 
 #include "modes/StarsMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h" // NOLINT(misc-include-cleaner)
 
 static_assert(GRID_COLUMNS * GRID_ROWS >= (0b1U << 4U),
               __STRING(MODE_STARS) " is not compatible with this device's display size.");
@@ -34,13 +34,11 @@ void StarsMode::handle()
             {
                 star.direction ? ++star.brightness : --star.brightness;
             }
-#if EXTENSION_MICROPHONE
-            else if (!Extensions.Microphone().isTriggered())
+            else if (!Trigger::active())
             {
                 star.lastMillis = millis();
                 break;
             }
-#endif // EXTENSION_MICROPHONE
             else
             {
                 do

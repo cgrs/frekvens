@@ -4,8 +4,8 @@
 
 #include "config/constants.h"        // NOLINT(misc-include-cleaner)
 #include "handlers/BitmapHandler.h"  // NOLINT(misc-include-cleaner)
+#include "modules/Trigger.h"
 #include "services/DisplayService.h" // NOLINT(misc-include-cleaner)
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_COLUMNS >= 15U, __STRING(MODE_ARROW) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS >= 15U, __STRING(MODE_ARROW) " is not compatible with this device's display size.");
@@ -17,11 +17,7 @@ static_assert(GRID_ROWS >= 15U, __STRING(MODE_ARROW) " is not compatible with th
  */
 void ArrowMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > INT8_MAX && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > INT8_MAX)
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > INT8_MAX && Trigger::active())
     {
         lastMillis = millis();
         Display.fillFrame(0U);

@@ -3,8 +3,8 @@
 #include "modes/RingMode.h"
 
 #include "handlers/BitmapHandler.h" // NOLINT(misc-include-cleaner)
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_COLUMNS == 16U, __STRING(MODE_RING) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS == 16U, __STRING(MODE_RING) " is not compatible with this device's display size.");
@@ -18,11 +18,7 @@ static_assert(GRID_ROWS == 16U, __STRING(MODE_RING) " is not compatible with thi
  */
 void RingMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > INT8_MAX && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > INT8_MAX)
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > INT8_MAX && Trigger::active())
     {
         lastMillis = millis();
 

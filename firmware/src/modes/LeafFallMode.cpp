@@ -2,8 +2,8 @@
 
 #include "modes/LeafFallMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h" // NOLINT(misc-include-cleaner)
 
 static_assert(GRID_COLUMNS * GRID_ROWS >= 20U,
               __STRING(MODE_LEAFFALL) " is not compatible with this device's display size.");
@@ -40,12 +40,8 @@ void LeafFallMode::handle()
             Display.setPixel(leaf.x, leaf.y, 0U);
             if (leaf.y >= GRID_ROWS - 1U)
             {
-#if EXTENSION_MICROPHONE
                 leaf.brightness =
-                    static_cast<uint8_t>(Extensions.Microphone().isTriggered() ? random(0b1U << 4U, 0b1U << 8U) : 0U);
-#else
-                leaf.brightness = static_cast<uint8_t>(random(0b1U << 4U, 0b1U << 8U));
-#endif // EXTENSION_MICROPHONE
+                    static_cast<uint8_t>(Trigger::active() ? random(0b1U << 4U, 0b1U << 8U) : 0U);
                 leaf.y = 0U;
                 do
                 {
@@ -64,14 +60,10 @@ void LeafFallMode::handle()
             {
                 ++leaf.y;
             }
-#if EXTENSION_MICROPHONE
             if (leaf.brightness != 0U)
             {
                 Display.setPixel(leaf.x, leaf.y, leaf.brightness);
             }
-#else
-            Display.setPixel(leaf.x, leaf.y, leaf.brightness);
-#endif // EXTENSION_MICROPHONE
             leaf.delay = static_cast<uint16_t>(random(UINT8_MAX, 600));
             leaf.lastMillis = millis();
         }

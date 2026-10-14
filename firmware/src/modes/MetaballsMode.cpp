@@ -2,8 +2,8 @@
 
 #include "modes/MetaballsMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h" // NOLINT(misc-include-cleaner)
-#include "services/ExtensionsService.h"
 
 #include <algorithm>
 #include <cmath>
@@ -46,12 +46,10 @@ void MetaballsMode::begin()
  */
 void MetaballsMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (!Extensions.Microphone().isTriggered())
+    if (!Trigger::active())
     {
         return;
     }
-#endif // EXTENSION_MICROPHONE
     if (millis() - lastMillis < interval)
     {
         return;

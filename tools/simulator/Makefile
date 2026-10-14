@@ -16,7 +16,7 @@ MODES := Arrow AutoWalker BinaryEpoch Blinds Blink BreakoutClock Bright Circle C
 
 DEFS := -DEXTENSION_HOMEASSISTANT=1 -DNAME='"$(DEVICE)"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1) -DSIM_FREKVENS=$(if $(filter frekvens,$(DEVICE)),1,0) -DSIM_DEVICE_NAME='"$(if $(filter frekvens,$(DEVICE)),IKEA Frekvens,IKEA Obegränsad)"'
 CXXFLAGS := -std=c++20 -O2 -Wall -Wextra -Wno-unused-parameter -Wno-reorder-ctor -Wno-sign-compare -Wno-unused-private-field -include Arduino.h -Ishims -Ibuild -I$(BUILD) -I$(FW)/include $(DEFS)
-SRCS := shims/Arduino.cpp shims/DisplayService.cpp shims/nvs.cpp \
+SRCS := shims/Arduino.cpp shims/Trigger.cpp shims/DisplayService.cpp shims/nvs.cpp \
 	$(FW)/src/modules/ModeModule.cpp $(FW)/src/modules/FontModule.cpp $(FW)/src/modules/HandlerModule.cpp $(FW)/src/modules/ServiceModule.cpp \
 	$(FW)/src/handlers/ClockHandler.cpp $(FW)/src/handlers/TextHandler.cpp $(FW)/src/handlers/BitmapHandler.cpp \
 	$(wildcard $(FW)/src/fonts/*.cpp) $(FW)/src/services/FontsService.cpp \

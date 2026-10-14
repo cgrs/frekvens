@@ -3,8 +3,8 @@
 #include "modes/LinesMode.h"
 
 #include "config/constants.h" // NOLINT(misc-include-cleaner)
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_COLUMNS >= 4U, __STRING(MODE_LINES) " is not compatible with this device's display size.");
 
@@ -16,11 +16,7 @@ static_assert(GRID_COLUMNS >= 4U, __STRING(MODE_LINES) " is not compatible with 
  */
 void LinesMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > INT8_MAX && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > INT8_MAX)
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > INT8_MAX && Trigger::active())
     {
         lastMillis = millis();
         for (uint8_t offset{0U}; offset < GRID_COLUMNS + 2U; offset += 4U)

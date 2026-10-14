@@ -2,8 +2,8 @@
 
 #include "modes/BlinkMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 /**
  * @brief Advances the blink state when the update interval has elapsed.
@@ -14,11 +14,7 @@
  */
 void BlinkMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > (0b1U << 10U) && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > (0b1U << 10U))
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > (0b1U << 10U) && Trigger::active())
     {
         lastMillis = millis();
         Display.fillFrame(lit ? UINT8_MAX : 0U);

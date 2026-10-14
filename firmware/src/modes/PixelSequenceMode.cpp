@@ -2,8 +2,8 @@
 
 #include "modes/PixelSequenceMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 /**
  * @brief Initializes the pixel sequence mapping.
@@ -27,11 +27,7 @@ void PixelSequenceMode::configure()
  */
 void PixelSequenceMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > INT8_MAX && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > INT8_MAX)
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > INT8_MAX && Trigger::active())
     {
         Display.setPixel(pixels[idx], lit ? UINT8_MAX : 0U);
         if (++idx == pixels.size())

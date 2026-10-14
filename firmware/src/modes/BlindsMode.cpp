@@ -2,8 +2,8 @@
 
 #include "modes/BlindsMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_ROWS >= 6U, __STRING(MODE_BLINDS) " is not compatible with this device's display size.");
 
@@ -15,11 +15,7 @@ static_assert(GRID_ROWS >= 6U, __STRING(MODE_BLINDS) " is not compatible with th
  */
 void BlindsMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > UINT8_MAX && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > UINT8_MAX)
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > UINT8_MAX && Trigger::active())
     {
         lastMillis = millis();
         if (modulo == 1U)

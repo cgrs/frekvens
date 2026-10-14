@@ -3,8 +3,8 @@
 #include "modes/WaveformMode.h"
 
 #include "handlers/BitmapHandler.h" // NOLINT(misc-include-cleaner)
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_COLUMNS == 16U, __STRING(MODE_WAVEFORM) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS >= 12U, __STRING(MODE_WAVEFORM) " is not compatible with this device's display size.");
@@ -21,8 +21,7 @@ void WaveformMode::handle()
     if (millis() - lastMillis > (0b1U << 9U))
     {
         Display.fillFrame(0U);
-#if EXTENSION_MICROPHONE
-        if (Extensions.Microphone().isTriggered())
+        if (Trigger::active())
         {
             draw();
         }
@@ -30,9 +29,6 @@ void WaveformMode::handle()
         {
             Display.fillRow(GRID_ROWS / 2U, UINT8_MAX);
         }
-#else
-        draw();
-#endif // EXTENSION_MICROPHONE
         lastMillis = millis();
     }
 }

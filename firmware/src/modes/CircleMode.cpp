@@ -2,8 +2,8 @@
 
 #include "modes/CircleMode.h"
 
+#include "modules/Trigger.h"
 #include "services/DisplayService.h" // NOLINT(misc-include-cleaner)
-#include "services/ExtensionsService.h"
 
 static_assert(GRID_COLUMNS >= 3U, __STRING(MODE_CIRCLE) " is not compatible with this device's display size.");
 static_assert(GRID_ROWS >= 3U, __STRING(MODE_CIRCLE) " is not compatible with this device's display size.");
@@ -16,11 +16,7 @@ static_assert(GRID_ROWS >= 3U, __STRING(MODE_CIRCLE) " is not compatible with th
  */
 void CircleMode::handle()
 {
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis > (0b1U << 6U) && Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis > (0b1U << 6U))
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis > (0b1U << 6U) && Trigger::active())
     {
         bool _lit{lit};
         for (uint16_t _radius{radius}; _radius < uint16_t{maxRadius} + 1U; _radius += 3U)

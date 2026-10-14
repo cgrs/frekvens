@@ -5,8 +5,8 @@
 #include "config/constants.h"                  // NOLINT(misc-include-cleaner)
 #include "extensions/HomeAssistantExtension.h" // NOLINT(misc-include-cleaner)
 #include "services/DeviceService.h"
+#include "modules/Trigger.h"
 #include "services/DisplayService.h"
-#include "services/ExtensionsService.h" // NOLINT(misc-include-cleaner)
 
 #include <nvs.h>
 #include <vector>
@@ -61,11 +61,7 @@ void GameOfLifeMode::handle()
     {
         clock->handle();
     }
-#if EXTENSION_MICROPHONE
-    if (millis() - lastMillis <= UINT8_MAX || !Extensions.Microphone().isTriggered())
-#else
-    if (millis() - lastMillis <= UINT8_MAX)
-#endif // EXTENSION_MICROPHONE
+    if (millis() - lastMillis <= UINT8_MAX || !Trigger::active())
     {
         return;
     }

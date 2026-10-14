@@ -5,6 +5,7 @@
 #include "handlers/ClockHandler.h" // NOLINT(misc-include-cleaner)
 #include "modules/ModeModule.h"
 
+#include <array>
 #include <bits/unique_ptr.h>
 
 class GameOfLifeMode final : public ModeModule
@@ -18,23 +19,21 @@ private:
 
     std::unique_ptr<ClockHandler> clock{};
 
-    void setClock(bool _clock);
-    void transmit();
+    static constexpr std::array<Option, 1U> declared{
+        Option{"clock", "Clock", OptionType::boolean, "one-up"},
+    };
 
 public:
     static constexpr std::string_view name{"Game of Life"};
 
     explicit GameOfLifeMode() : ModeModule(name) {};
 
-    void configure() override;
     void begin() override;
     void handle() override;
 
-    void onReceive(JsonObjectConst payload, std::string_view source) override;
-
-#if EXTENSION_HOMEASSISTANT
-    void onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique) override;
-#endif
+    [[nodiscard]] std::span<const Option> options() const override { return declared; }
+    [[nodiscard]] uint8_t getOption(size_t index) const override;
+    void setOption(size_t index, uint8_t value) override;
 };
 
 #endif // MODE_GAMEOFLIFE

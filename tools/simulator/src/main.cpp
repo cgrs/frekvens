@@ -1,0 +1,260 @@
+// Lamp simulator: runs a firmware mode against a virtual display and draws the frames in the terminal.
+//
+//   simulator list
+//   simulator <mode> [--seconds N] [--fps N] [--tick MS] [--seed N] [--scale PT_PER_MM]
+//                    [--terminal | --plain | --png FILE] [--fast]
+//
+// On macOS the default is a window sized from the lamp's pixel pitch; --terminal draws ANSI LEDs instead,
+// --plain prints the last frame as text and --png FILE saves it as an image (both run without real-time pacing).
+//
+// The mode code is the firmware's own; only the display, clock and random source are replaced.
+
+#include "modules/ModeModule.h"
+#include "services/DisplayService.h"
+#include "Window.h"
+
+#include "registry.inc"
+
+#include <algorithm>
+#include <chrono>
+#include <csignal>
+#include <cstdio>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <thread>
+
+namespace
+{
+volatile std::sig_atomic_t stop{0};
+
+std::string normalize(std::string_view text)
+{
+    std::string out;
+    for (const char c : text)
+    {
+        if (c != ' ' && c != '-')
+        {
+            out.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        }
+    }
+    return out;
+}
+
+void draw(std::string_view name, unsigned long ms, bool plain)
+{
+    if (plain)
+    {
+        constexpr std::string_view ramp{" .:-=+*#%@"};
+        for (size_t y{0U}; y < GRID_ROWS; ++y)
+        {
+            for (size_t x{0U}; x < GRID_COLUMNS; ++x)
+            {
+                const uint8_t b{Display.getPixel(static_cast<uint8_t>(x), static_cast<uint8_t>(y))};
+                std::putchar(ramp[b * (ramp.size() - 1U) / UINT8_MAX]);
+                std::putchar(' ');
+            }
+            std::putchar('\n');
+        }
+        return;
+    }
+    std::string out{"\x1b[H"};
+    for (size_t y{0U}; y < GRID_ROWS; ++y)
+    {
+        for (size_t x{0U}; x < GRID_COLUMNS; ++x)
+        {
+            const unsigned b{Display.getPixel(static_cast<uint8_t>(x), static_cast<uint8_t>(y))};
+            // The firmware applies gamma to the PWM, so brightness already reads as linear light.
+            const unsigned r{b == 0U ? 34U : 34U + ((255U - 34U) * b / UINT8_MAX)};
+            const unsigned g{b == 0U ? 34U : 34U + ((244U - 34U) * b / UINT8_MAX)};
+            const unsigned bl{b == 0U ? 34U : 34U + ((224U - 34U) * b / UINT8_MAX)};
+            char cell[48];
+            std::snprintf(cell, sizeof(cell), "\x1b[38;2;%u;%u;%um● ", r, g, bl);
+            out += cell;
+        }
+        out += "\x1b[0m\n";
+    }
+    char footer[96];
+    std::snprintf(footer, sizeof(footer), "\x1b[0m%.*s  %lu.%01lus  (ctrl-c to quit)\x1b[K\n", static_cast<int>(name.size()),
+                  name.data(), ms / 1000UL, (ms % 1000UL) / 100UL);
+    out += footer;
+    std::fwrite(out.data(), 1U, out.size(), stdout);
+    std::fflush(stdout);
+}
+} // namespace
+
+int main(int argc, char **argv)
+{
+    if (argc < 2 || std::strcmp(argv[1], "list") == 0 || std::strcmp(argv[1], "--help") == 0)
+    {
+        for (const auto &entry : registry)
+        {
+            std::printf("%.*s\n", static_cast<int>(entry.name.size()), entry.name.data());
+        }
+        return argc < 2 ? 1 : 0;
+    }
+    unsigned long seconds{0UL};
+    unsigned fps{30U};
+    unsigned tick{1U};
+    unsigned long seed{1UL};
+    double scale{1.6};
+    bool fast{false};
+    bool plain{false};
+#ifdef __APPLE__
+    bool terminal{false};
+#else
+    bool terminal{true};
+#endif
+    const char *png{nullptr};
+    for (int i{2}; i < argc; ++i)
+    {
+        const std::string_view arg{argv[i]};
+        if (arg == "--fast")
+        {
+            fast = true;
+        }
+        else if (arg == "--terminal")
+        {
+            terminal = true;
+        }
+        else if (arg == "--plain")
+        {
+            plain = true;
+        }
+        else if (i + 1 < argc && arg == "--png")
+        {
+            png = argv[++i];
+        }
+        else if (i + 1 < argc && arg == "--seconds")
+        {
+            seconds = std::strtoul(argv[++i], nullptr, 10);
+        }
+        else if (i + 1 < argc && arg == "--fps")
+        {
+            fps = std::max(1U, static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 10)));
+        }
+        else if (i + 1 < argc && arg == "--tick")
+        {
+            tick = std::max(1U, static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 10)));
+        }
+        else if (i + 1 < argc && arg == "--seed")
+        {
+            seed = std::strtoul(argv[++i], nullptr, 10);
+        }
+        else if (i + 1 < argc && arg == "--scale")
+        {
+            scale = std::strtod(argv[++i], nullptr);
+        }
+        else
+        {
+            std::fprintf(stderr, "unknown argument: %s\n", argv[i]);
+            return 2;
+        }
+    }
+    const bool offscreen{plain || png != nullptr};
+    if (offscreen)
+    {
+        fast = true;
+        if (seconds == 0UL)
+        {
+            seconds = 10UL;
+        }
+    }
+    const Entry *entry{nullptr};
+    for (const auto &candidate : registry)
+    {
+        if (normalize(candidate.name) == normalize(argv[1]))
+        {
+            entry = &candidate;
+        }
+    }
+    if (entry == nullptr)
+    {
+        std::fprintf(stderr, "unknown mode: %s (try `list`)\n", argv[1]);
+        return 2;
+    }
+    randomSeed(seed);
+    std::unique_ptr<ModeModule> mode{entry->make()};
+    // Same order as ModesService::handle(): blank frame, then begin().
+    Display.fillFrame(0U);
+    mode->configure();
+    mode->begin();
+
+    const unsigned frameMs{1000U / fps};
+    unsigned long elapsed{0UL};
+    // The firmware task calls handle() then yields for one tick, so step the clock the same way.
+    const auto step{[&]() -> bool {
+        if (stop != 0 || (seconds != 0UL && elapsed >= seconds * 1000UL))
+        {
+            return false;
+        }
+        for (unsigned t{0U}; t < frameMs; t += tick)
+        {
+            simAdvance(tick);
+            mode->handle();
+            Display.flush();
+        }
+        elapsed += frameMs;
+        return true;
+    }};
+
+    LampWindow lamp{};
+    lamp.title = std::string{SIM_DEVICE_NAME} + " - " + std::string{entry->name};
+    lamp.columns = GRID_COLUMNS;
+    lamp.rows = GRID_ROWS;
+    lamp.widthMm = static_cast<double>(GRID_COLUMNS * PITCH_HORIZONTAL);
+    lamp.heightMm = static_cast<double>(GRID_ROWS * PITCH_VERTICAL);
+    lamp.scale = scale;
+    lamp.fps = fps;
+    lamp.step = step;
+    lamp.pixel = [](unsigned x, unsigned y) { return Display.getPixel(static_cast<uint8_t>(x), static_cast<uint8_t>(y)); };
+
+    if (png != nullptr || offscreen)
+    {
+        while (step())
+        {
+        }
+        if (plain)
+        {
+            draw(entry->name, elapsed, true);
+        }
+#ifdef __APPLE__
+        if (png != nullptr && !savePng(lamp, png))
+        {
+            std::fprintf(stderr, "could not write %s\n", png);
+            return 1;
+        }
+#else
+        if (png != nullptr)
+        {
+            std::fprintf(stderr, "--png needs macOS\n");
+            return 1;
+        }
+#endif
+        return 0;
+    }
+#ifdef __APPLE__
+    if (!terminal)
+    {
+        return runWindow(lamp);
+    }
+#endif
+    std::signal(SIGINT, [](int) { stop = 1; });
+    std::fputs("\x1b[2J\x1b[?25l", stdout);
+    while (true)
+    {
+        const auto started{std::chrono::steady_clock::now()};
+        if (!step())
+        {
+            break;
+        }
+        draw(entry->name, elapsed, false);
+        if (!fast)
+        {
+            std::this_thread::sleep_until(started + std::chrono::milliseconds(frameMs));
+        }
+    }
+    std::fputs("\x1b[?25h\x1b[0m", stdout);
+    return 0;
+}

@@ -28,12 +28,13 @@ const [getTemperature, setTemperature] = createSignal<number | undefined>(undefi
 export const receiver = (json: {
     condition?: string;
     provider?: string;
-    providers?: string[];
+    options?: { key: string; choices?: string[] }[];
     temperature?: number;
 }) => {
     json?.condition !== undefined && setCondition(json.condition);
     json?.provider !== undefined && setProvider(json.provider);
-    json?.providers !== undefined && setProviders(json.providers);
+    const choices = json?.options?.find((option) => option.key === "provider")?.choices;
+    choices !== undefined && setProviders(choices);
     json?.temperature !== undefined && setTemperature(json.temperature);
 };
 

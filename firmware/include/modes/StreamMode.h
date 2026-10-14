@@ -5,18 +5,30 @@
 #include "modules/ModeModule.h"
 
 #include <AsyncUDP.h>
+#include <array>
 #include <bits/unique_ptr.h>
 #include <span>
 
 class StreamMode final : public ModeModule
 {
 private:
-    static inline uint16_t port{4048U};
+    static constexpr std::array<std::string_view, 3U> protocolNames{
+        "Distributed Display Protocol",
+        "E1.31",
+        "Art-Net",
+    };
+
+    static constexpr std::array<uint16_t, 3U> ports{4048U, 5568U, 6454U};
+
+    static constexpr std::array<Option, 1U> declared{
+        Option{"protocol", "Protocol", OptionType::choice, "protocol", protocolNames},
+    };
+
+    bool began{false};
+
+    uint8_t protocol{0U};
 
     AsyncUDP udp{};
-
-    void set(uint16_t _port);
-    void transmit();
 
     static void onArtNet(AsyncUDPPacket packet);
     static void onDistributedDisplayProtocol(AsyncUDPPacket packet);
@@ -27,14 +39,11 @@ public:
 
     explicit StreamMode() : ModeModule(name) {};
 
-    void configure() override;
     void begin() override;
 
-    void onReceive(JsonObjectConst payload, std::string_view source) override;
-
-#if EXTENSION_HOMEASSISTANT
-    void onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique) override;
-#endif
+    [[nodiscard]] std::span<const Option> options() const override { return declared; }
+    [[nodiscard]] uint8_t getOption(size_t index) const override;
+    void setOption(size_t index, uint8_t value) override;
 };
 
 #endif // MODE_STREAM

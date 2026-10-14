@@ -20,10 +20,16 @@ const [getMinutes, setMinutes] = createSignal<number>(parseInt(Cookies.get(`${na
 const [getSeconds, setSeconds] = createSignal<number>(parseInt(Cookies.get(`${name}.seconds`) ?? "0", 10));
 const [getTimestamp, setTimestamp] = createSignal<string>("");
 
-export const receiver = (json: { event?: string; font?: string; fonts?: string[]; timestamp?: string }) => {
+export const receiver = (json: {
+    event?: string;
+    font?: string;
+    options?: { key: string; choices?: string[] }[];
+    timestamp?: string;
+}) => {
     json?.event !== undefined && event(json.event);
     json?.font !== undefined && setFont(json.font);
-    json?.fonts !== undefined && setFonts(json.fonts);
+    const choices = json?.options?.find((option) => option.key === "font")?.choices;
+    choices !== undefined && setFonts(choices);
     json?.timestamp !== undefined && setTimestamp(json.timestamp);
 };
 

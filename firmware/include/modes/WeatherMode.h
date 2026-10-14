@@ -40,18 +40,11 @@ private:
 #endif
     })};
 
-    static constexpr size_t providerNamesMaxLength{[]
-                                                   {
-                                                       size_t length{0U};
-                                                       for (const std::string_view _name : providerNames)
-                                                       {
-                                                           if (_name.size() > length)
-                                                           {
-                                                               length = _name.size();
-                                                           }
-                                                       }
-                                                       return length;
-                                                   }()};
+    static constexpr std::array<Option, 1U> declared{
+        Option{"provider", "Provider", OptionType::choice, "weather-partly-cloudy", providerNames},
+    };
+
+    uint8_t providerIndex{0U};
 
     unsigned long lastMillis{0UL};
 
@@ -61,24 +54,20 @@ private:
 
     std::unique_ptr<WeatherHandler> provider{};
 
-    void setProvider(std::string_view providerName);
-
-    void transmit();
+    void makeProvider();
 
 public:
     static constexpr std::string_view name{"Weather"};
 
     explicit WeatherMode() : ModeModule(name) {};
 
-    void configure() override;
     void begin() override;
     void handle() override;
 
-    void onReceive(JsonObjectConst payload, std::string_view source) override;
-
-#if EXTENSION_HOMEASSISTANT
-    void onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique) override;
-#endif
+    [[nodiscard]] std::span<const Option> options() const override { return declared; }
+    [[nodiscard]] uint8_t getOption(size_t index) const override;
+    void setOption(size_t index, uint8_t value) override;
+    void extendState(JsonObject doc) const override;
 };
 
 #endif // MODE_WEATHER

@@ -19,11 +19,15 @@ void ModeModule::end() {}
 std::span<const Option> ModeModule::options() const { return {}; }
 uint8_t ModeModule::getOption(size_t index) const { return 0U; }
 void ModeModule::setOption(size_t index, uint8_t value) {}
+std::string ModeModule::getText(size_t index) const { return {}; }
+bool ModeModule::setText(size_t index, std::string_view value) { return false; }
+void ModeModule::extendState(JsonObject doc) const {}
 
 /**
  * @brief Restores the persisted option values.
  *
- * Stored as `uint8_t` under the option's key in the mode's namespace. Values outside a choice's range are ignored.
+ * Stored under the option's key in the mode's namespace: a string for text, a `uint8_t` otherwise. Values outside a
+ * choice's range are ignored.
  */
 void ModeModule::loadOptions()
 {
@@ -35,6 +39,20 @@ void ModeModule::loadOptions()
     }
     for (size_t idx{0U}; idx < _options.size(); ++idx)
     {
+        if (_options[idx].type == OptionType::text)
+        {
+            size_t length{0U};
+            if (nvs_get_str(handle, _options[idx].key.data(), nullptr, &length) == ESP_OK && length > 1U)
+            {
+                std::string value(length, '\0');
+                if (nvs_get_str(handle, _options[idx].key.data(), value.data(), &length) == ESP_OK)
+                {
+                    value.resize(length - 1U);
+                    static_cast<void>(setText(idx, value));
+                }
+            }
+            continue;
+        }
         uint8_t value{0U};
         if (nvs_get_u8(handle, _options[idx].key.data(), &value) == ESP_OK &&
             (_options[idx].type == OptionType::boolean ? value <= 1U : value < _options[idx].choices.size()))
@@ -76,9 +94,17 @@ void ModeModule::transmitOptions() const
             doc[option.key.data()].set(value != 0U);
             declaration["type"].set("boolean");
         }
+        else if (option.type == OptionType::text)
+        {
+            doc[option.key.data()].set(getText(idx));
+            declaration["type"].set("text");
+        }
         else
         {
-            doc[option.key.data()].set(option.choices[std::min<size_t>(value, option.choices.size() - 1U)]);
+            if (!option.choices.empty())
+            {
+                doc[option.key.data()].set(option.choices[std::min<size_t>(value, option.choices.size() - 1U)]);
+            }
             declaration["type"].set("choice");
             JsonArray choices{declaration["choices"].to<JsonArray>()};
             for (const std::string_view choice : option.choices)
@@ -87,6 +113,7 @@ void ModeModule::transmitOptions() const
             }
         }
     }
+    extendState(doc.as<JsonObject>());
     Device.transmit(doc.as<JsonObjectConst>(), name);
 }
 
@@ -104,6 +131,21 @@ void ModeModule::onReceive(JsonObjectConst payload, std::string_view source)
     {
         const Option &option{_options[idx]};
         const JsonVariantConst field{payload[option.key.data()]};
+        if (option.type == OptionType::text)
+        {
+            if (field.is<std::string_view>() && setText(idx, field.as<std::string_view>()))
+            {
+                nvs_handle_t handle{};
+                if (nvs_open(name.data(), nvs_open_mode_t::NVS_READWRITE, &handle) == ESP_OK)
+                {
+                    nvs_set_str(handle, option.key.data(), getText(idx).c_str());
+                    nvs_commit(handle);
+                    nvs_close(handle);
+                }
+                changed = true;
+            }
+            continue;
+        }
         uint8_t value{0U};
         if (option.type == OptionType::boolean)
         {
@@ -159,8 +201,11 @@ void ModeModule::onHomeAssistant(JsonDocument &discovery, std::string topic, std
         const std::string id{std::string(name).append("_").append(key)};
         JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};
         component[HomeAssistantAbbreviations::command_topic].set(topic + "/set");
-        component[HomeAssistantAbbreviations::enabled_by_default].set(false);
-        component[HomeAssistantAbbreviations::entity_category].set("config");
+        if (option.config)
+        {
+            component[HomeAssistantAbbreviations::enabled_by_default].set(false);
+            component[HomeAssistantAbbreviations::entity_category].set("config");
+        }
         if (!option.icon.empty())
         {
             component[HomeAssistantAbbreviations::icon].set(std::string("mdi:").append(option.icon));
@@ -179,6 +224,11 @@ void ModeModule::onHomeAssistant(JsonDocument &discovery, std::string topic, std
             component[HomeAssistantAbbreviations::platform].set("switch");
             component[HomeAssistantAbbreviations::state_off].set("False");
             component[HomeAssistantAbbreviations::state_on].set("True");
+        }
+        else if (option.type == OptionType::text)
+        {
+            component[HomeAssistantAbbreviations::command_template].set("{\"" + key + "\":\"{{value}}\"}");
+            component[HomeAssistantAbbreviations::platform].set("text");
         }
         else
         {

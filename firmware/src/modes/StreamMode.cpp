@@ -2,32 +2,16 @@
 
 #include "modes/StreamMode.h"
 
-#include "config/constants.h"                  // NOLINT(misc-include-cleaner)
-#include "extensions/HomeAssistantExtension.h" // NOLINT(misc-include-cleaner)
-#include "services/DeviceService.h"
+#include "config/constants.h" // NOLINT(misc-include-cleaner)
 #include "services/DisplayService.h"
-
-#include <nvs.h>
-
-/**
- * @brief Loads the persisted streaming port and publishes the current configuration.
- */
-void StreamMode::configure()
-{
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READONLY, &handle) == ESP_OK)
-    {
-        nvs_get_u16(handle, "port", &port);
-        nvs_close(handle);
-    }
-    transmit();
-}
 
 /**
  * @brief Starts UDP listening on the configured port and registers its protocol handler.
  */
 void StreamMode::begin()
 {
+    began = true;
+    const uint16_t port{ports[protocol]};
     if (udp.listen(port))
     {
         switch (port)
@@ -50,52 +34,24 @@ void StreamMode::begin()
 }
 
 /**
- * @brief Sets the streaming protocol port and restarts UDP listening.
+ * @brief Gets the selected protocol.
  *
- * Persists the port when it is supported, then publishes the updated configuration.
- *
- * @param _port Supported streaming port: 4048, 5568, or 6454.
+ * @param index Index into the declared options.
  */
-void StreamMode::set(uint16_t _port)
-{
-    if (_port != 4048U && _port != 5568U && _port != 6454U)
-    {
-        return;
-    }
-    port = _port;
-    nvs_handle_t handle{};
-    if (nvs_open(name.data(), nvs_open_mode_t::NVS_READWRITE, &handle) == ESP_OK)
-    {
-        nvs_set_u16(handle, "port", port);
-        nvs_commit(handle);
-        nvs_close(handle);
-    }
-    begin();
-    transmit();
-}
+uint8_t StreamMode::getOption(size_t index) const { return protocol; }
 
 /**
- * @brief Publishes the configured streaming port.
- */
-void StreamMode::transmit()
-{
-    JsonDocument doc{};
-    doc["port"].set(port);
-    Device.transmit(doc.as<JsonObjectConst>(), name);
-}
-
-/**
- * @brief Applies a received streaming port configuration.
+ * @brief Selects the streaming protocol and restarts UDP listening when the mode is running.
  *
- * @param payload Configuration payload containing the optional `port` value.
- * @param source Source identifier for the received configuration.
+ * @param index Index into the declared options.
+ * @param value Index into the protocols.
  */
-void StreamMode::onReceive(JsonObjectConst payload, std::string_view source)
+void StreamMode::setOption(size_t index, uint8_t value)
 {
-    // Port
-    if (payload["port"].is<uint16_t>())
+    protocol = value;
+    if (began)
     {
-        set(payload["port"].as<uint16_t>());
+        begin();
     }
 }
 
@@ -146,38 +102,5 @@ void StreamMode::onE131(AsyncUDPPacket packet)
             std::span(packet.data(), packet.length()).subspan(126U)));
     }
 }
-
-#if EXTENSION_HOMEASSISTANT
-/**
- * @brief Adds Home Assistant discovery metadata for selecting the streaming protocol.
- *
- * @param discovery JSON document receiving the discovery configuration.
- * @param topic Base topic used for protocol state and commands.
- * @param unique Prefix used to construct the entity's unique identifier.
- */
-void StreamMode::onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique)
-{
-    topic.append(name);
-    {
-        const std::string id{std::string(name).append("_protocol")};
-        JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};
-        component[HomeAssistantAbbreviations::command_template].set(
-            R"({"port":{{{"Art-Net":6454,"Distributed Display Protocol":4048,"E1.31":5568}.get(value)}}})");
-        component[HomeAssistantAbbreviations::command_topic].set(topic + "/set");
-        component[HomeAssistantAbbreviations::enabled_by_default].set(false);
-        component[HomeAssistantAbbreviations::entity_category].set("config");
-        component[HomeAssistantAbbreviations::icon].set("mdi:protocol");
-        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" protocol"));
-        component[HomeAssistantAbbreviations::options][0U].set("Art-Net");
-        component[HomeAssistantAbbreviations::options][1U].set("Distributed Display Protocol");
-        component[HomeAssistantAbbreviations::options][2U].set("E1.31");
-        component[HomeAssistantAbbreviations::platform].set("select");
-        component[HomeAssistantAbbreviations::state_topic].set(topic);
-        component[HomeAssistantAbbreviations::unique_id].set(unique + id);
-        component[HomeAssistantAbbreviations::value_template].set(
-            R"({{{4048:"Distributed Display Protocol",5568:"E1.31",6454:"Art-Net"}.get(value_json.port)}})");
-    }
-}
-#endif // EXTENSION_HOMEASSISTANT
 
 #endif // MODE_STREAM

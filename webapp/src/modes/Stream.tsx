@@ -1,5 +1,5 @@
 import { mdiRouterWireless } from "@mdi/js";
-import { type Component, createSignal } from "solid-js";
+import { type Component, createSignal, For } from "solid-js";
 
 import { Icon } from "../components/Icon";
 import { HOSTNAME } from "../config/constants";
@@ -9,26 +9,35 @@ import { MainComponent as ModesMainComponent } from "../services/Modes";
 
 export const name = "Stream";
 
-const [getPort, setPort] = createSignal<number>(4048);
+const ports: Record<string, number> = {
+    "Art-Net": 6454,
+    "Distributed Display Protocol": 4048,
+    "E1.31": 5568,
+};
 
-export const receiver = (json: { port?: number }) => {
-    json?.port !== undefined && setPort(json.port);
+const [getProtocol, setProtocol] = createSignal<string>("Distributed Display Protocol");
+const [getProtocols, setProtocols] = createSignal<string[]>([]);
+
+export const receiver = (json: { protocol?: string; options?: { key: string; choices?: string[] }[] }) => {
+    json?.protocol !== undefined && setProtocol(json.protocol);
+    const choices = json?.options?.find((option) => option.key === "protocol")?.choices;
+    choices !== undefined && setProtocols(choices);
 };
 
 export const Main: Component = () => (
     <ModesMainComponent
         icon={mdiRouterWireless}
-        text={`${HOSTNAME}.local:${getPort()}`}
+        text={`${HOSTNAME}.local:${ports[getProtocol()] ?? ""}`}
     />
 );
 
 export const Sidebar: Component = () => {
-    const handlePort = (port: number) => {
-        setPort(port);
+    const handleProtocol = (protocol: string) => {
+        setProtocol(protocol);
         WebSocketWS.send(
             JSON.stringify({
                 [name]: {
-                    port: getPort(),
+                    protocol: getProtocol(),
                 },
             }),
         );
@@ -40,12 +49,10 @@ export const Sidebar: Component = () => {
                 <Icon path={mdiRouterWireless} />
                 <select
                     class="w-full"
-                    value={getPort()}
-                    onchange={(e) => handlePort(parseInt(e.currentTarget.value, 10))}
+                    value={getProtocol()}
+                    onchange={(e) => handleProtocol(e.currentTarget.value)}
                 >
-                    <option value="6454">Art-Net</option>
-                    <option value="4048">Distributed Display Protocol</option>
-                    <option value="5568">E1.31</option>
+                    <For each={getProtocols()}>{(protocol) => <option>{protocol}</option>}</For>
                 </select>
             </div>
         </SidebarSection>

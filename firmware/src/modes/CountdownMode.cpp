@@ -18,21 +18,13 @@ static_assert(GRID_COLUMNS >= 8U, __STRING(MODE_COUNTDOWN) " is not compatible w
 static_assert(GRID_ROWS >= 11U, __STRING(MODE_COUNTDOWN) " is not compatible with this device's display size.");
 
 /**
- * @brief Loads the persisted countdown configuration and publishes the current settings.
+ * @brief Loads the persisted countdown target and publishes the current settings.
  */
 void CountdownMode::configure()
 {
     nvs_handle_t handle{};
     if (nvs_open(name.data(), nvs_open_mode_t::NVS_READONLY, &handle) == ESP_OK)
     {
-        std::array<char, FontsService::namesMaxLength + 1U> _fontName{};
-        size_t length{_fontName.size()};
-        if (nvs_get_str(handle, "font", _fontName.data(), &length) == ESP_OK &&
-            std::ranges::find(FontsService::names, std::string_view{_fontName.data(), length - 1U}) !=
-                FontsService::names.end())
-        {
-            fontName.assign(_fontName.data(), length - 1U);
-        }
         int64_t _epoch{0};
         if (nvs_get_i64(handle, "epoch", &_epoch) == ESP_OK && _epoch != 0)
         {
@@ -40,7 +32,7 @@ void CountdownMode::configure()
         }
         nvs_close(handle);
     }
-    transmit();
+    ModeModule::configure();
 }
 
 /**
@@ -76,11 +68,11 @@ void CountdownMode::handle()
         lower = _lower;
         if (seconds >= 0 && minutes >= 0 && hours >= 0)
         {
-            const std::unique_ptr<const FontModule> font{Fonts.get(fontName)};
-            const TextHandler _tl(std::to_string(_upper / 10U), *font);
-            const TextHandler _tr(std::to_string(_upper % 10U), *font);
-            const TextHandler _bl(std::to_string(lower / 10U), *font);
-            const TextHandler _br(std::to_string(lower % 10U), *font);
+            const std::unique_ptr<const FontModule> fontModule{Fonts.get(fontNames[font])};
+            const TextHandler _tl(std::to_string(_upper / 10U), *fontModule);
+            const TextHandler _tr(std::to_string(_upper % 10U), *fontModule);
+            const TextHandler _bl(std::to_string(lower / 10U), *fontModule);
+            const TextHandler _br(std::to_string(lower % 10U), *fontModule);
             const uint8_t fontWidth{max({_tl.getWidth(), _tr.getWidth(), _bl.getWidth(), _br.getWidth()})};
             Display.fillFrame(0U);
             _tl.draw((GRID_COLUMNS / 2U) - 1U - fontWidth + ((fontWidth - _tl.getWidth()) / 2U),
@@ -120,59 +112,53 @@ void CountdownMode::save()
         nvs_commit(handle);
         nvs_close(handle);
     }
-    transmit();
-}
-
-void CountdownMode::setFont(std::string_view _fontName)
-{
-    if (std::ranges::find(FontsService::names, _fontName) != FontsService::names.end())
-    {
-        fontName = _fontName;
-        nvs_handle_t handle{};
-        if (nvs_open(name.data(), nvs_open_mode_t::NVS_READWRITE, &handle) == ESP_OK)
-        {
-            nvs_set_str(handle, "font", fontName.c_str());
-            nvs_commit(handle);
-            nvs_close(handle);
-        }
-        transmit();
-    }
+    transmitOptions();
 }
 
 /**
- * @brief Publishes the current font, available fonts, and countdown timestamp.
+ * @brief Gets the selected font.
+ *
+ * @param index Index into the declared options.
+ */
+uint8_t CountdownMode::getOption(size_t index) const { return font; }
+
+/**
+ * @brief Selects the font; the next frame redraws with it.
+ *
+ * @param index Index into the declared options.
+ * @param value Index into the available fonts.
+ */
+void CountdownMode::setOption(size_t index, uint8_t value)
+{
+    font = value;
+    upper = lower = 0xFFU;
+}
+
+/**
+ * @brief Adds the countdown timestamp to the published state.
  *
  * The timestamp is formatted as a local ISO-like date and time.
+ *
+ * @param doc Payload to extend.
  */
-void CountdownMode::transmit()
+void CountdownMode::extendState(JsonObject doc) const
 {
     std::array<char, 32U> buffer{};
     time_t timer{std::chrono::system_clock::to_time_t(epoch)};
     tm local{*std::localtime(&timer)};
     const size_t length{strftime(buffer.data(), buffer.size(), "%FT%T", &local)};
-    JsonDocument doc{};
-    doc["font"].set(fontName);
-    JsonArray _fonts{doc["fonts"].to<JsonArray>()};
-    for (const std::string_view _font : fontNames)
-    {
-        _fonts.add(_font);
-    }
     doc["timestamp"].set(std::string_view(buffer.data(), min(buffer.size(), length)));
-    Device.transmit(doc.as<JsonObjectConst>(), name);
 }
 
 /**
- * @brief Updates the countdown font or target time from a received payload.
+ * @brief Applies the font and updates the target time from a received payload.
  *
  * @param payload Payload containing a font name, a duration in seconds, or a local timestamp.
+ * @param source Source identifier for the received payload.
  */
 void CountdownMode::onReceive(JsonObjectConst payload, std::string_view source)
 {
-    // Font
-    if (payload["font"].is<std::string_view>())
-    {
-        setFont(payload["font"].as<std::string_view>());
-    }
+    ModeModule::onReceive(payload, source);
     // Time or timestamp
     if (payload["time"].is<uint32_t>())
     {
@@ -191,7 +177,7 @@ void CountdownMode::onReceive(JsonObjectConst payload, std::string_view source)
 
 #if EXTENSION_HOMEASSISTANT
 /**
- * @brief Adds Home Assistant discovery components for countdown configuration.
+ * @brief Adds the font selector and a datetime entity for the countdown target.
  *
  * @param discovery Home Assistant discovery document to populate.
  * @param topic Base command and state topic for the countdown mode.
@@ -199,26 +185,8 @@ void CountdownMode::onReceive(JsonObjectConst payload, std::string_view source)
  */
 void CountdownMode::onHomeAssistant(JsonDocument &discovery, std::string topic, std::string unique)
 {
+    ModeModule::onHomeAssistant(discovery, topic, unique);
     topic.append(name);
-    {
-        const std::string id{std::string(name).append("_font")};
-        JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};
-        component[HomeAssistantAbbreviations::command_template].set(R"({"font":"{{value}}"})");
-        component[HomeAssistantAbbreviations::command_topic].set(topic + "/set");
-        component[HomeAssistantAbbreviations::enabled_by_default].set(false);
-        component[HomeAssistantAbbreviations::entity_category].set("config");
-        component[HomeAssistantAbbreviations::icon].set("mdi:format-font");
-        component[HomeAssistantAbbreviations::name].set(std::string(name).append(" font"));
-        JsonArray options{component[HomeAssistantAbbreviations::options].to<JsonArray>()};
-        for (const std::string_view _font : fontNames)
-        {
-            options.add(_font);
-        }
-        component[HomeAssistantAbbreviations::platform].set("select");
-        component[HomeAssistantAbbreviations::state_topic].set(topic);
-        component[HomeAssistantAbbreviations::unique_id].set(unique + id);
-        component[HomeAssistantAbbreviations::value_template].set("{{value_json.font}}");
-    }
     {
         const std::string id{std::string(name).append("_timestamp")};
         JsonObject component{discovery[HomeAssistantAbbreviations::components][id].to<JsonObject>()};

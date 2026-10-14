@@ -8,12 +8,14 @@ enum class OptionType : uint8_t // NOLINT(performance-enum-size)
 {
     boolean,
     choice,
+    text,
 };
 
 /**
  * @brief Declares one user-facing setting of a mode.
  *
- * Values are a `uint8_t`: 0 or 1 for a boolean, the index into `choices` for a choice. The payload and
+ * Values are a `uint8_t`: 0 or 1 for a boolean, the index into `choices` for a choice. A text option is read and
+ * written through `getText()` and `setText()` instead. The payload and
  * persistence key is `key`, so changing it renames the setting for every client.
  */
 struct Option
@@ -23,4 +25,5 @@ struct Option
     OptionType type;
     std::string_view icon{};                     // Material Design Icons name, without the `mdi:` prefix
     std::span<const std::string_view> choices{}; // only for OptionType::choice
+    bool config{true};                           // false for a primary control, shown outside Home Assistant configuration
 };

@@ -23,7 +23,11 @@ private:
 
     static inline std::chrono::time_point<std::chrono::system_clock> epoch{};
 
-    static inline std::string fontName{fontNames[0U]};
+    static constexpr std::array<Option, 1U> declared{
+        Option{"font", "Font", OptionType::choice, "format-font", fontNames},
+    };
+
+    uint8_t font{0U};
 
     bool odd{false};
 
@@ -32,7 +36,6 @@ private:
     uint8_t upper{0U};
 
     void save();
-    void transmit();
 
 public:
     static constexpr std::string_view name{"Countdown"};
@@ -42,7 +45,11 @@ public:
     void configure() override;
     void begin() override;
     void handle() override;
-    void setFont(std::string_view _fontName);
+
+    [[nodiscard]] std::span<const Option> options() const override { return declared; }
+    [[nodiscard]] uint8_t getOption(size_t index) const override;
+    void setOption(size_t index, uint8_t value) override;
+    void extendState(JsonObject doc) const override;
 
     void onReceive(JsonObjectConst payload, std::string_view source) override;
 

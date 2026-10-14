@@ -3,34 +3,56 @@
 // NOLINTBEGIN(misc-include-cleaner)
 #include "modes/AnimationMode.h"
 #include "modes/ArrowMode.h"
+#include "modes/AutoWalkerMode.h"
+#include "modes/BigPongMode.h"
 #include "modes/BinaryEpochMode.h"
 #include "modes/BlindsMode.h"
 #include "modes/BlinkMode.h"
+#include "modes/BouncingBallMode.h"
 #include "modes/BreakoutClockMode.h"
 #include "modes/BrightMode.h"
+#include "modes/BubblesMode.h"
+#include "modes/CheckerboardMode.h"
 #include "modes/CircleMode.h"
 #include "modes/ClockMode.h"
+#include "modes/CometMode.h"
 #include "modes/CountdownMode.h"
 #include "modes/DrawMode.h"
 #include "modes/EqualizerMode.h"
+#include "modes/FaceMode.h"
+#include "modes/FallingSandMode.h"
 #include "modes/FireworkMode.h"
+#include "modes/FlappyBirdMode.h"
 #include "modes/FliesMode.h"
 #include "modes/GameOfLifeMode.h"
 #include "modes/GlitterMode.h"
 #include "modes/HomeThermometerMode.h"
 #include "modes/LeafFallMode.h"
 #include "modes/LinesMode.h"
+#include "modes/MatrixRainMode.h"
 #include "modes/MetaballsMode.h"
+#include "modes/MeteorShowerMode.h"
 #include "modes/NoiseMode.h"
 #include "modes/PingPongMode.h"
 #include "modes/PixelSequenceMode.h"
+#include "modes/PongClockMode.h"
+#include "modes/RadarMode.h"
 #include "modes/RainMode.h"
 #include "modes/RingMode.h"
 #include "modes/ScanMode.h"
+#include "modes/ScanlinesMode.h"
 #include "modes/SnakeMode.h"
+#include "modes/SpaceInvadersMode.h"
+#include "modes/SparkleFieldMode.h"
+#include "modes/SpiralMode.h"
+#include "modes/SpotlightMode.h"
 #include "modes/StarsMode.h"
 #include "modes/StreamMode.h"
+#include "modes/TetrisMode.h"
 #include "modes/TickerMode.h"
+#include "modes/TronMode.h"
+#include "modes/WaveMode.h"
+#include "modes/WaveBarsMode.h"
 #include "modes/WaveformMode.h"
 #include "modes/WeatherMode.h"
 #include "modules/ModeModule.h"
@@ -67,6 +89,12 @@ public:
 #if MODE_ARROW
         ArrowMode::name,
 #endif
+#if MODE_AUTOWALKER
+        AutoWalkerMode::name,
+#endif
+#if MODE_BIGPONG
+        BigPongMode::name,
+#endif
 #if MODE_BINARYEPOCH
         BinaryEpochMode::name,
 #endif
@@ -76,17 +104,29 @@ public:
 #if MODE_BLINK
         BlinkMode::name,
 #endif
+#if MODE_BOUNCINGBALL
+        BouncingBallMode::name,
+#endif
 #if MODE_BREAKOUTCLOCK
         BreakoutClockMode::name,
 #endif
 #if MODE_BRIGHT
         BrightMode::name,
 #endif
+#if MODE_BUBBLES
+        BubblesMode::name,
+#endif
+#if MODE_CHECKERBOARD
+        CheckerboardMode::name,
+#endif
 #if MODE_CIRCLE
         CircleMode::name,
 #endif
 #if MODE_CLOCK
         ClockMode::name,
+#endif
+#if MODE_COMET
+        CometMode::name,
 #endif
 #if MODE_COUNTDOWN
         CountdownMode::name,
@@ -97,8 +137,17 @@ public:
 #if MODE_EQUALIZER
         EqualizerMode::name,
 #endif
+#if MODE_FACE
+        FaceMode::name,
+#endif
+#if MODE_FALLINGSAND
+        FallingSandMode::name,
+#endif
 #if MODE_FIREWORK
         FireworkMode::name,
+#endif
+#if MODE_FLAPPYBIRD
+        FlappyBirdMode::name,
 #endif
 #if MODE_FLIES
         FliesMode::name,
@@ -118,8 +167,14 @@ public:
 #if MODE_LINES
         LinesMode::name,
 #endif
+#if MODE_MATRIXRAIN
+        MatrixRainMode::name,
+#endif
 #if MODE_METABALLS
         MetaballsMode::name,
+#endif
+#if MODE_METEORSHOWER
+        MeteorShowerMode::name,
 #endif
 #if MODE_NOISE
         NoiseMode::name,
@@ -130,6 +185,12 @@ public:
 #if MODE_PIXELSEQUENCE
         PixelSequenceMode::name,
 #endif
+#if MODE_PONGCLOCK
+        PongClockMode::name,
+#endif
+#if MODE_RADAR
+        RadarMode::name,
+#endif
 #if MODE_RAIN
         RainMode::name,
 #endif
@@ -139,8 +200,23 @@ public:
 #if MODE_SCAN
         ScanMode::name,
 #endif
+#if MODE_SCANLINES
+        ScanlinesMode::name,
+#endif
 #if MODE_SNAKE
         SnakeMode::name,
+#endif
+#if MODE_SPACEINVADERS
+        SpaceInvadersMode::name,
+#endif
+#if MODE_SPARKLEFIELD
+        SparkleFieldMode::name,
+#endif
+#if MODE_SPIRAL
+        SpiralMode::name,
+#endif
+#if MODE_SPOTLIGHT
+        SpotlightMode::name,
 #endif
 #if MODE_STARS
         StarsMode::name,
@@ -148,8 +224,20 @@ public:
 #if MODE_STREAM
         StreamMode::name,
 #endif
+#if MODE_TETRIS
+        TetrisMode::name,
+#endif
 #if MODE_TICKER
         TickerMode::name,
+#endif
+#if MODE_TRON
+        TronMode::name,
+#endif
+#if MODE_WAVE
+        WaveMode::name,
+#endif
+#if MODE_WAVEBARS
+        WaveBarsMode::name,
 #endif
 #if MODE_WAVEFORM
         WaveformMode::name,

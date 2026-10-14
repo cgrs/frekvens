@@ -1,8 +1,8 @@
 # 🎛️ Modes
 
-**Clocks:** [Binary epoch](#1%EF%B8%8F⃣-binary-epoch) | [Breakout clock](#-breakout-clock) | [Clock](#️-clock) | [Game of Life](#-game-of-life) | [Ping-pong](#-ping-pong) | [Snake](#️-snake)
+**Clocks:** [Binary epoch](#1%EF%B8%8F⃣-binary-epoch) | [Breakout clock](#-breakout-clock) | [Clock](#️-clock) | [Game of Life](#-game-of-life) | [Ping-pong](#-ping-pong) | [Snake](#️-snake) | [Pong clock](#-pong-clock)
 
-**Games:** [Breakout clock](#-breakout-clock) | [Game of life](#-game-of-life) | [Ping-pong](#-ping-pong)| [Snake](#-snake)
+**Games:** [Breakout clock](#-breakout-clock) | [Game of life](#-game-of-life) | [Ping-pong](#-ping-pong)| [Snake](#-snake) | [Big pong](#-big-pong) | [Flappy bird](#-flappy-bird) | [Pong clock](#-pong-clock) | [Space invaders](#-space-invaders) | [Tetris](#-tetris) | [Tron](#️-tron)
 
 **IKEA Frekvens:** [Arrow](#️-arrow) | [Blinds](#-blinds) | [Equalizer](#-equalizer) | [Ring](#-ring) | [Waveform](#-waveform)
 
@@ -11,6 +11,8 @@
 **Interactive:** [Animation](#-animation) | [Countdown](#-countdown) | [Draw](#-draw) | [Flies](#-flies) | [Ticker](#🅰%EF%B8%8F-ticker)
 
 **Smart-home:** [Home Thermometer](#️-home-thermometer) | [Stream](#-stream) | [Weather](#-weather)
+
+**Animations:** [Auto walker](#-auto-walker) | [Bouncing ball](#-bouncing-ball) | [Bubbles](#-bubbles) | [Checkerboard](#-checkerboard) | [Comet](#️-comet) | [Face](#-face) | [Falling sand](#-falling-sand) | [Matrix rain](#-matrix-rain) | [Meteor shower](#-meteor-shower) | [Radar](#-radar) | [Scanlines](#-scanlines) | [Sparkle field](#-sparkle-field) | [Spiral](#-spiral) | [Spotlight](#-spotlight) | [Wave](#-wave) | [Wave bars](#-wave-bars)
 
 **Miscellaneous:** [Blink](#️-blink) | [Bright](#-bright) | [Firework](#-firework) | [Glitter](#-glitter) | [Leaf fall](#-leaf-fall) | [Metaballs](#-metaballs) | [Pixel sequence](#-pixel-sequence) | [Waveform](#-waveform)
 
@@ -42,6 +44,26 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 
 ```ini
 MODE_ARROW='true'
+```
+
+## 🚶 Auto walker
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a walker prefers the least visited neighbouring pixel and paints a trail that brightens with each visit, until every pixel has been visited.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_AUTOWALKER='true'
+```
+
+## 🎮 Big pong
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: self-playing pong with wide paddles at the top and bottom, where the ball speeds up with each hit.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_BIGPONG='true'
 ```
 
 ## 1️⃣ Binary epoch
@@ -79,6 +101,16 @@ MODE_BLINK='true'
 
 See also [Bright](#-bright).
 
+## 🏀 Bouncing ball
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a ball bounces down through randomly generated obstacles, then a new level starts.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_BOUNCINGBALL='true'
+```
+
 ## 💥 Breakout clock
 
 Inspired by the classic breakout game.
@@ -104,6 +136,26 @@ MODE_BRIGHT='true'
 
 See also [Blink](#%EF%B8%8F-blink).
 
+## 🫧 Bubbles
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: ring-shaped bubbles that grow and pop at random positions.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_BUBBLES='true'
+```
+
+## 🏁 Checkerboard
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a checkerboard that cross-fades and inverts, occasionally shifting by one pixel.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_CHECKERBOARD='true'
+```
+
 ## ⚪ Circle
 
 Inspired by the original *IKEA Obegränsad* mode.
@@ -127,6 +179,16 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 
 ```ini
 MODE_CLOCK='true'
+```
+
+## ☄️ Comet
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a comet bouncing diagonally around the display, leaving a fading trail.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_COMET='true'
 ```
 
 ## ⏳ Countdown
@@ -187,6 +249,26 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 MODE_EQUALIZER='true'
 ```
 
+## 🙂 Face
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a minimalist face that looks around, blinks and changes expression.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_FACE='true'
+```
+
+## 🪨 Falling sand
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: grains of sand drop from a wandering point, pile up and slide sideways, then drain out once the pile reaches the top.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_FALLINGSAND='true'
+```
+
 ## 🎆 Firework
 
 Happy new year.
@@ -195,6 +277,16 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 
 ```ini
 MODE_FIREWORK='true'
+```
+
+## 🐦 Flappy bird
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: self-playing Flappy Bird, the bird predicts its trajectory and flaps through the gaps.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_FLAPPYBIRD='true'
 ```
 
 ## 🪰 Flies
@@ -284,6 +376,16 @@ MODE_LINES='true'
 
 See also [Scan](#-scan).
 
+## 🟩 Matrix rain
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: falling columns with bright heads and fading trails.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_MATRIXRAIN='true'
+```
+
 ## 🔵 Metaballs
 
 Inspired by organic, blob-like shapes.
@@ -295,6 +397,16 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 
 ```ini
 MODE_METABALLS='true'
+```
+
+## 🌠 Meteor shower
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: meteors streaking diagonally across the display with short tails.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_METEORSHOWER='true'
 ```
 
 ## 🔇 Noise
@@ -331,6 +443,26 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 
 ```ini
 MODE_PIXELSEQUENCE='true'
+```
+
+## 🏓 Pong clock
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: pong that tells the time: the paddles let the ball through to score each hour and minute change, then the digits update.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_PONGCLOCK='true'
+```
+
+## 📡 Radar
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a rotating radar sweep with range rings and fading blips.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_RADAR='true'
 ```
 
 ## ☔ Rain
@@ -373,6 +505,16 @@ MODE_SCAN='true'
 
 See also [Lines](#-lines).
 
+## 📺 Scanlines
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a horizontal scanline bouncing between the top and bottom rows.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_SCANLINES='true'
+```
+
 ## 🐍 Snake
 
 Inspired by the classic snake-game. Comes with an optional clock.
@@ -381,6 +523,46 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 
 ```ini
 MODE_SNAKE='true'
+```
+
+## 👾 Space invaders
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: self-playing Space Invaders, the ship tracks the nearest column of enemies and shoots them down wave after wave.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_SPACEINVADERS='true'
+```
+
+## ✨ Sparkle field
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: random pixels flashing and fading out.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_SPARKLEFIELD='true'
+```
+
+## 🌀 Spiral
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a rotating spiral arm that breathes in and out.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_SPIRAL='true'
+```
+
+## 🔦 Spotlight
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: a soft spot of light drifting around and bouncing off the edges.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_SPOTLIGHT='true'
 ```
 
 ## ⭐ Stars
@@ -418,6 +600,16 @@ Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
 MODE_STREAM='true'
 ```
 
+## 🧱 Tetris
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: self-playing Tetris, an AI picks the best rotation and column for every piece.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_TETRIS='true'
+```
+
 ## 🅰️ Ticker
 
 Rolling text.
@@ -443,6 +635,36 @@ MODE_TICKER='true'
 ```
 
 See also [Message](https://github.com/VIPnytt/Frekvens/wiki/Extensions#message).
+
+## 🏍️ Tron
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: two light cycles steer by open space until one crashes, then both trails rewind.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_TRON='true'
+```
+
+## 🌊 Wave
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: three overlapping sine waves rendered as shifting brightness.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_WAVE='true'
+```
+
+## 📶 Wave bars
+
+Inspired by the [ikea-led-obegraensad](https://github.com/ph1p/ikea-led-obegraensad) plugin of the same name: bottom-aligned bars whose heights follow a moving sine wave.
+
+Configure in [.env](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+
+```ini
+MODE_WAVEBARS='true'
+```
 
 ## 🔊 Waveform
 

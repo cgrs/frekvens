@@ -62,6 +62,7 @@ void ModesService::handle()
     {
         scheduled = false;
         ESP_LOGI(name.data(), "Mode %s", mode->name.data()); // NOLINT(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        Display.fillFrame(0U);
         mode->begin();
         setActive(true);
         nvs_handle_t handle{};
@@ -126,6 +127,18 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<ArrowMode>();
     }
 #endif
+#if MODE_AUTOWALKER
+    if (modeName == AutoWalkerMode::name)
+    {
+        return std::make_unique<AutoWalkerMode>();
+    }
+#endif
+#if MODE_BIGPONG
+    if (modeName == BigPongMode::name)
+    {
+        return std::make_unique<BigPongMode>();
+    }
+#endif
 #if MODE_BINARYEPOCH
     if (modeName == BinaryEpochMode::name)
     {
@@ -144,6 +157,12 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<BlinkMode>();
     }
 #endif
+#if MODE_BOUNCINGBALL
+    if (modeName == BouncingBallMode::name)
+    {
+        return std::make_unique<BouncingBallMode>();
+    }
+#endif
 #if MODE_BREAKOUTCLOCK
     if (modeName == BreakoutClockMode::name)
     {
@@ -156,6 +175,18 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<BrightMode>();
     }
 #endif
+#if MODE_BUBBLES
+    if (modeName == BubblesMode::name)
+    {
+        return std::make_unique<BubblesMode>();
+    }
+#endif
+#if MODE_CHECKERBOARD
+    if (modeName == CheckerboardMode::name)
+    {
+        return std::make_unique<CheckerboardMode>();
+    }
+#endif
 #if MODE_CIRCLE
     if (modeName == CircleMode::name)
     {
@@ -166,6 +197,12 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
     if (modeName == ClockMode::name)
     {
         return std::make_unique<ClockMode>();
+    }
+#endif
+#if MODE_COMET
+    if (modeName == CometMode::name)
+    {
+        return std::make_unique<CometMode>();
     }
 #endif
 #if MODE_COUNTDOWN
@@ -186,10 +223,28 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<EqualizerMode>();
     }
 #endif
+#if MODE_FACE
+    if (modeName == FaceMode::name)
+    {
+        return std::make_unique<FaceMode>();
+    }
+#endif
+#if MODE_FALLINGSAND
+    if (modeName == FallingSandMode::name)
+    {
+        return std::make_unique<FallingSandMode>();
+    }
+#endif
 #if MODE_FIREWORK
     if (modeName == FireworkMode::name)
     {
         return std::make_unique<FireworkMode>();
+    }
+#endif
+#if MODE_FLAPPYBIRD
+    if (modeName == FlappyBirdMode::name)
+    {
+        return std::make_unique<FlappyBirdMode>();
     }
 #endif
 #if MODE_FLIES
@@ -228,10 +283,22 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<LinesMode>();
     }
 #endif
+#if MODE_MATRIXRAIN
+    if (modeName == MatrixRainMode::name)
+    {
+        return std::make_unique<MatrixRainMode>();
+    }
+#endif
 #if MODE_METABALLS
     if (modeName == MetaballsMode::name)
     {
         return std::make_unique<MetaballsMode>();
+    }
+#endif
+#if MODE_METEORSHOWER
+    if (modeName == MeteorShowerMode::name)
+    {
+        return std::make_unique<MeteorShowerMode>();
     }
 #endif
 #if MODE_NOISE
@@ -252,6 +319,18 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<PixelSequenceMode>();
     }
 #endif
+#if MODE_PONGCLOCK
+    if (modeName == PongClockMode::name)
+    {
+        return std::make_unique<PongClockMode>();
+    }
+#endif
+#if MODE_RADAR
+    if (modeName == RadarMode::name)
+    {
+        return std::make_unique<RadarMode>();
+    }
+#endif
 #if MODE_RAIN
     if (modeName == RainMode::name)
     {
@@ -270,10 +349,40 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<ScanMode>();
     }
 #endif
+#if MODE_SCANLINES
+    if (modeName == ScanlinesMode::name)
+    {
+        return std::make_unique<ScanlinesMode>();
+    }
+#endif
 #if MODE_SNAKE
     if (modeName == SnakeMode::name)
     {
         return std::make_unique<SnakeMode>();
+    }
+#endif
+#if MODE_SPACEINVADERS
+    if (modeName == SpaceInvadersMode::name)
+    {
+        return std::make_unique<SpaceInvadersMode>();
+    }
+#endif
+#if MODE_SPARKLEFIELD
+    if (modeName == SparkleFieldMode::name)
+    {
+        return std::make_unique<SparkleFieldMode>();
+    }
+#endif
+#if MODE_SPIRAL
+    if (modeName == SpiralMode::name)
+    {
+        return std::make_unique<SpiralMode>();
+    }
+#endif
+#if MODE_SPOTLIGHT
+    if (modeName == SpotlightMode::name)
+    {
+        return std::make_unique<SpotlightMode>();
     }
 #endif
 #if MODE_STARS
@@ -288,10 +397,34 @@ std::unique_ptr<ModeModule> ModesService::getMode(std::string_view modeName)
         return std::make_unique<StreamMode>();
     }
 #endif
+#if MODE_TETRIS
+    if (modeName == TetrisMode::name)
+    {
+        return std::make_unique<TetrisMode>();
+    }
+#endif
 #if MODE_TICKER
     if (modeName == TickerMode::name)
     {
         return std::make_unique<TickerMode>();
+    }
+#endif
+#if MODE_TRON
+    if (modeName == TronMode::name)
+    {
+        return std::make_unique<TronMode>();
+    }
+#endif
+#if MODE_WAVE
+    if (modeName == WaveMode::name)
+    {
+        return std::make_unique<WaveMode>();
+    }
+#endif
+#if MODE_WAVEBARS
+    if (modeName == WaveBarsMode::name)
+    {
+        return std::make_unique<WaveBarsMode>();
     }
 #endif
 #if MODE_WAVEFORM

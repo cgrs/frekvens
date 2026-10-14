@@ -1,20 +1,19 @@
 # Host build of the firmware modes. Needs only a C++20 compiler.
-#   ./simulator [--device obegransad|frekvens] <mode>   builds on demand, then runs
-#   make [DEVICE=frekvens]   builds only (build/<device>/simulator)
+#   make            build ./build/simulator
+#   ./build/simulator <mode> --device frekvens   picks the lamp at run time
 # Not simulated: Animation, Countdown, Draw, Flies (need payloads to show anything), Stream, Weather and
 # HomeThermometer (network). The rest of the firmware modes run on the shims in shims/.
 
-DEVICE ?= obegransad
 CXX ?= clang++
 ROOT := ../..
 FW := $(ROOT)/firmware
-BUILD := build/$(DEVICE)
+BUILD := build
 
 MODES := Countdown Arrow AutoWalker BinaryEpoch Blinds Blink BreakoutClock Bright Circle Clock Equalizer Firework GameOfLife Glitter LeafFall Lines Noise PingPong PixelSequence Ring Scan Snake Ticker Waveform BigPong BouncingBall Bubbles Checkerboard Comet Face FallingSand FlappyBird MatrixRain \
 	MeteorShower Metaballs PongClock Radar Rain Scanlines SpaceInvaders SparkleField Spiral Spotlight Stars \
 	Tetris Tron Wave WaveBars
 
-DEFS := -DTIME_ZONE='"UTC"' -DEXTENSION_HOMEASSISTANT=1 -DNAME='"$(DEVICE)"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1) -DSIM_FREKVENS=$(if $(filter frekvens,$(DEVICE)),1,0) -DSIM_DEVICE_NAME='"$(if $(filter frekvens,$(DEVICE)),IKEA Frekvens,IKEA Obegränsad)"'
+DEFS := -DTIME_ZONE='"UTC"' -DEXTENSION_HOMEASSISTANT=1 -DNAME='"simulator"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1)
 CXXFLAGS := -std=c++20 -O2 -Wall -Wextra -Wno-unused-parameter -Wno-reorder-ctor -Wno-sign-compare -Wno-unused-private-field -include Arduino.h -Ishims -Ibuild -I$(BUILD) -I$(FW)/include $(DEFS)
 SRCS := shims/Arduino.cpp shims/Trigger.cpp shims/DisplayService.cpp shims/nvs.cpp \
 	$(FW)/src/modules/ModeModule.cpp $(FW)/src/modules/FontModule.cpp $(FW)/src/modules/HandlerModule.cpp $(FW)/src/modules/ServiceModule.cpp \
@@ -26,11 +25,16 @@ SRCS += src/Window.mm
 LDFLAGS := -framework Cocoa
 endif
 
-$(BUILD)/simulator: $(SRCS) src/Window.h build/ArduinoJson.h $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
+$(BUILD)/simulator: $(SRCS) src/Window.h build/ArduinoJson.h $(BUILD)/devices.inc $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
 	$(CXX) $(CXXFLAGS) $(SRCS) $(LDFLAGS) -o $@
 
 $(BUILD)/DisplayDraw.inc: $(FW)/src/services/DisplayService.cpp | $(BUILD)
 	awk '/^uint8_t DisplayService::getPixel\(size_t idx\)/ {on=1} on {print} /^void DisplayService::invertFrame/ {inv=1} inv && /^}/ {exit}' $< > $@
+
+# One row per device header; the pitch is what tells the lamps apart, so the grid must agree with the build.
+$(BUILD)/devices.inc: Makefile $(wildcard $(FW)/include/config/Ikea*.h) | $(BUILD)
+	for f in $(wildcard $(FW)/include/config/Ikea*.h); do id=$$(basename $$f .h | sed 's/^Ikea//' | tr A-Z a-z); \
+	  awk -v id=$$id '/^#define MANUFACTURER/ {ma=$$3} /^#define MODEL/ {mo=$$3} /^#define GRID_COLUMNS/ {c=$$3} /^#define GRID_ROWS/ {r=$$3} /^#define PITCH_HORIZONTAL/ {ph=$$3} /^#define LED_MAP/ {led=1; next} led {t=$$0; gsub(/[ \\\\\t]/, "", t); if (t == "}") {led=0} else if (t != "{") {map=map t}} /^#define PITCH_VERTICAL/ {pv=$$3} END {printf "{\"%s\", %s \" \" %s, %s, %s, %s, %s, {%s}},\n", id, ma, mo, c, r, ph, pv, map}' $$f; done > $@
 
 $(BUILD)/registry.inc: Makefile | $(BUILD)
 	{ for m in $(MODES); do echo "#include \"modes/$${m}Mode.h\""; done; \
@@ -44,12 +48,12 @@ $(BUILD):
 	mkdir -p $@
 
 clean:
-	rm -rf $(BUILD)
+	find build -mindepth 1 -maxdepth 1 ! -name ArduinoJson.h -exec rm -rf {} +
 
 .PHONY: clean
 
 # Run every mode headless for 60 virtual seconds under ASan/UBSan; fails on out-of-range writes and the like.
-check: $(SRCS) build/ArduinoJson.h $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
+check: $(SRCS) build/ArduinoJson.h $(BUILD)/devices.inc $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
 	$(CXX) $(CXXFLAGS) -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all $(SRCS) $(LDFLAGS) -o $(BUILD)/simulator-check
 	@$(BUILD)/simulator-check list | while read -r mode; do \
 	  $(BUILD)/simulator-check "$$mode" --plain --seconds 60 >/dev/null || { echo "FAIL: $$mode"; exit 1; }; \

@@ -1,9 +1,12 @@
 // Lamp simulator: runs a firmware mode against a virtual display and draws the frames in the terminal.
 //
 //   simulator list
-//   simulator <mode> [--seconds N] [--fps N] [--tick MS] [--seed N] [--scale PT_PER_MM]
+//   simulator <mode> [--device ID] [--seconds N] [--fps N] [--tick MS] [--seed N] [--scale PT_PER_MM]
 //                    [--terminal | --plain | --png FILE] [--fast]
 //                    [--set KEY=VALUE]... [--state] [--ha]
+//
+// --device picks the lamp from firmware/include/config/Ikea*.h (default: obegransad); it sets the window size
+// and the display ratio. The grid is a compile-time constant of the modes, so a device with another grid is refused.
 //
 // --set sends an option payload to the mode, --state prints what the mode publishes and --ha prints its Home
 // Assistant discovery components.
@@ -13,6 +16,7 @@
 //
 // The mode code is the firmware's own; only the display, clock and random source are replaced.
 
+#include "SimDevice.h"
 #include "modules/ModeModule.h"
 #include "services/DeviceService.h"
 #include "services/DisplayService.h"
@@ -116,12 +120,17 @@ int main(int argc, char **argv)
     std::vector<std::string> sets;
     bool state{false};
     bool ha{false};
+    std::string_view deviceId{};
     for (int i{2}; i < argc; ++i)
     {
         const std::string_view arg{argv[i]};
         if (arg == "--fast")
         {
             fast = true;
+        }
+        else if (i + 1 < argc && arg == "--device")
+        {
+            deviceId = argv[++i];
         }
         else if (arg == "--state")
         {
@@ -173,6 +182,29 @@ int main(int argc, char **argv)
             return 2;
         }
     }
+    if (!deviceId.empty())
+    {
+        const auto *found{std::ranges::find_if(simDevices, [deviceId](const SimDevice &device) { return device.id == deviceId; })};
+        if (found == std::end(simDevices))
+        {
+            std::fprintf(stderr, "unknown device: %.*s (known:", static_cast<int>(deviceId.size()), deviceId.data());
+            for (const SimDevice &device : simDevices)
+            {
+                std::fprintf(stderr, " %.*s", static_cast<int>(device.id.size()), device.id.data());
+            }
+            std::fprintf(stderr, ")\n");
+            return 2;
+        }
+        simDevice = found;
+    }
+    if (simDevice->columns != GRID_COLUMNS || simDevice->rows != GRID_ROWS)
+    {
+        std::fprintf(stderr, "%.*s has a %ux%u grid; this build of the modes is %ux%u\n", static_cast<int>(simDevice->id.size()),
+                     simDevice->id.data(), simDevice->columns, simDevice->rows, static_cast<unsigned>(GRID_COLUMNS),
+                     static_cast<unsigned>(GRID_ROWS));
+        return 2;
+    }
+    DisplayService::pixels = simDevice->ledMap;
     const bool offscreen{plain || png != nullptr};
     if (offscreen)
     {
@@ -257,11 +289,11 @@ int main(int argc, char **argv)
     }};
 
     LampWindow lamp{};
-    lamp.title = std::string{SIM_DEVICE_NAME} + " - " + std::string{entry->name};
+    lamp.title = std::string{simDevice->title} + " - " + std::string{entry->name};
     lamp.columns = GRID_COLUMNS;
     lamp.rows = GRID_ROWS;
-    lamp.widthMm = static_cast<double>(GRID_COLUMNS * PITCH_HORIZONTAL);
-    lamp.heightMm = static_cast<double>(GRID_ROWS * PITCH_VERTICAL);
+    lamp.widthMm = static_cast<double>(GRID_COLUMNS * simDevice->pitchHorizontal);
+    lamp.heightMm = static_cast<double>(GRID_ROWS * simDevice->pitchVertical);
     lamp.scale = scale;
     lamp.fps = fps;
     lamp.step = step;

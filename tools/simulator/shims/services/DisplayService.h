@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SimDevice.h"
 #include "config/constants.h"
 #include "modules/ModeModule.h"
 
@@ -24,14 +25,14 @@ private:
     Orientation orientation{Orientation::deg0};
 
 public:
-    static constexpr std::array<size_t, GRID_COLUMNS * GRID_ROWS> pixels{LED_MAP};
+    static inline std::array<size_t, GRID_COLUMNS * GRID_ROWS> pixels{simDevice->ledMap};
 
     bool render{false};
     std::array<uint8_t, GRID_COLUMNS * GRID_ROWS> frame{};
     unsigned long flushes{0UL};
 
     [[nodiscard]] Orientation getOrientation() const { return orientation; }
-    [[nodiscard]] float getRatio() const { return static_cast<float>(PITCH_HORIZONTAL) / static_cast<float>(PITCH_VERTICAL); }
+    [[nodiscard]] float getRatio() const { return static_cast<float>(simDevice->pitchHorizontal) / static_cast<float>(simDevice->pitchVertical); }
 
     void getFrame(std::span<uint8_t, GRID_COLUMNS * GRID_ROWS> _frame) const;
     void setFrame(std::span<const uint8_t, GRID_COLUMNS * GRID_ROWS> _frame);

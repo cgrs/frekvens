@@ -1,6 +1,6 @@
 # Host build of the firmware modes. Needs only a C++20 compiler.
 #   make            build ./build/simulator
-#   ./build/simulator <mode> --device frekvens   picks the lamp at run time
+#   ./build/simulator --device frekvens <mode>   picks the lamp at run time (--help for the rest)
 # Not simulated: Animation, Countdown, Draw, Flies (need payloads to show anything), Stream, Weather and
 # HomeThermometer (network). The rest of the firmware modes run on the shims in shims/.
 
@@ -55,8 +55,8 @@ clean:
 # Run every mode headless for 60 virtual seconds under ASan/UBSan; fails on out-of-range writes and the like.
 check: $(SRCS) build/ArduinoJson.h $(BUILD)/devices.inc $(BUILD)/registry.inc $(BUILD)/DisplayDraw.inc $(BUILD)/HomeAssistantAbbreviations.inc
 	$(CXX) $(CXXFLAGS) -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all $(SRCS) $(LDFLAGS) -o $(BUILD)/simulator-check
-	@$(BUILD)/simulator-check list | while read -r mode; do \
-	  $(BUILD)/simulator-check "$$mode" --plain --seconds 60 >/dev/null || { echo "FAIL: $$mode"; exit 1; }; \
+	@$(BUILD)/simulator-check --list | while read -r mode; do \
+	  $(BUILD)/simulator-check --plain --seconds 60 "$$mode" >/dev/null || { echo "FAIL: $$mode"; exit 1; }; \
 	  echo "ok: $$mode"; done
 
 .PHONY: check

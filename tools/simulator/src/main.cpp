@@ -1,18 +1,6 @@
 // Lamp simulator: runs a firmware mode against a virtual display and draws the frames in the terminal.
 //
-//   simulator list
-//   simulator <mode> [--device ID] [--seconds N] [--fps N] [--tick MS] [--seed N] [--scale PT_PER_MM]
-//                    [--terminal | --plain | --png FILE] [--fast]
-//                    [--set KEY=VALUE]... [--state] [--ha]
-//
-// --device picks the lamp from firmware/include/config/Ikea*.h (default: obegransad); it sets the window size
-// and the display ratio. The grid is a compile-time constant of the modes, so a device with another grid is refused.
-//
-// --set sends an option payload to the mode, --state prints what the mode publishes and --ha prints its Home
-// Assistant discovery components.
-//
-// On macOS the default is a window sized from the lamp's pixel pitch; --terminal draws ANSI LEDs instead,
-// --plain prints the last frame as text and --png FILE saves it as an image (both run without real-time pacing).
+//   simulator [options] <mode>      run `simulator --help` for the options, `simulator --list` for the modes
 //
 // The mode code is the firmware's own; only the display, clock and random source are replaced.
 
@@ -27,6 +15,7 @@
 #include <algorithm>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -92,18 +81,56 @@ void draw(std::string_view name, unsigned long ms, bool plain)
     std::fwrite(out.data(), 1U, out.size(), stdout);
     std::fflush(stdout);
 }
+void usage(std::FILE *out)
+{
+    std::fprintf(out, "usage: simulator [options] <mode>\n\n"
+                      "Runs a firmware mode against a virtual lamp.\n\n"
+                      "lamp:\n"
+                      "  --device ID         lamp to simulate (default: obegransad), one of:");
+    for (const SimDevice &device : simDevices)
+    {
+        std::fprintf(out, " %.*s", static_cast<int>(device.id.size()), device.id.data());
+    }
+    std::fprintf(out, "\n"
+                      "  --scale N           window points per mm of pixel pitch (default: 1.6)\n\n"
+                      "output (default: a window on macOS, --terminal elsewhere):\n"
+                      "  --terminal          draw ANSI LEDs in the terminal in real time\n"
+                      "  --plain             print the last frame as text and exit\n"
+                      "  --png FILE          save the last frame as an image and exit\n"
+                      "  --seconds N         length of the run (default: forever, 10 with --plain or --png)\n"
+                      "  --fps N             frames drawn per second (default: 30)\n"
+                      "  --fast              skip real-time pacing\n\n"
+                      "mode:\n"
+                      "  --set KEY=VALUE     send an option, repeatable; the keys show up in --state\n"
+                      "  --state             print what the mode publishes\n"
+                      "  --ha                print its Home Assistant discovery and exit\n"
+                      "  --seed N            random seed (default: 1)\n"
+                      "  --tick MS           clock step per loop (default: 1)\n\n"
+                      "  --list              list the modes\n"
+                      "  -h, --help          this text\n\n"
+                      "examples:\n"
+                      "  simulator Snake\n"
+                      "  simulator --device frekvens --terminal Metaballs\n"
+                      "  simulator --set clock=0 --png snake.png Snake\n");
+}
+
+void list()
+{
+    for (const auto &entry : registry)
+    {
+        std::printf("%.*s\n", static_cast<int>(entry.name.size()), entry.name.data());
+    }
+}
 } // namespace
 
 int main(int argc, char **argv)
 {
-    if (argc < 2 || std::strcmp(argv[1], "list") == 0 || std::strcmp(argv[1], "--help") == 0)
+    if (argc < 2)
     {
-        for (const auto &entry : registry)
-        {
-            std::printf("%.*s\n", static_cast<int>(entry.name.size()), entry.name.data());
-        }
-        return argc < 2 ? 1 : 0;
+        usage(stderr);
+        return 1;
     }
+    const char *modeName{nullptr};
     unsigned long seconds{0UL};
     unsigned fps{30U};
     unsigned tick{1U};
@@ -121,16 +148,34 @@ int main(int argc, char **argv)
     bool state{false};
     bool ha{false};
     std::string_view deviceId{};
-    for (int i{2}; i < argc; ++i)
+    for (int i{1}; i < argc; ++i)
     {
         const std::string_view arg{argv[i]};
-        if (arg == "--fast")
+        const auto value{[&]() -> const char * {
+            if (i + 1 >= argc)
+            {
+                std::fprintf(stderr, "%s needs a value (see --help)\n", argv[i]);
+                std::exit(2);
+            }
+            return argv[++i];
+        }};
+        if (arg == "-h" || arg == "--help")
+        {
+            usage(stdout);
+            return 0;
+        }
+        else if (arg == "--list")
+        {
+            list();
+            return 0;
+        }
+        else if (arg == "--fast")
         {
             fast = true;
         }
-        else if (i + 1 < argc && arg == "--device")
+        else if (arg == "--device")
         {
-            deviceId = argv[++i];
+            deviceId = value();
         }
         else if (arg == "--state")
         {
@@ -140,9 +185,9 @@ int main(int argc, char **argv)
         {
             ha = true;
         }
-        else if (i + 1 < argc && arg == "--set")
+        else if (arg == "--set")
         {
-            sets.emplace_back(argv[++i]);
+            sets.emplace_back(value());
         }
         else if (arg == "--terminal")
         {
@@ -152,35 +197,54 @@ int main(int argc, char **argv)
         {
             plain = true;
         }
-        else if (i + 1 < argc && arg == "--png")
+        else if (arg == "--png")
         {
-            png = argv[++i];
+            png = value();
         }
-        else if (i + 1 < argc && arg == "--seconds")
+        else if (arg == "--seconds")
         {
-            seconds = std::strtoul(argv[++i], nullptr, 10);
+            seconds = std::strtoul(value(), nullptr, 10);
         }
-        else if (i + 1 < argc && arg == "--fps")
+        else if (arg == "--fps")
         {
-            fps = std::max(1U, static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 10)));
+            fps = std::max(1U, static_cast<unsigned>(std::strtoul(value(), nullptr, 10)));
         }
-        else if (i + 1 < argc && arg == "--tick")
+        else if (arg == "--tick")
         {
-            tick = std::max(1U, static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 10)));
+            tick = std::max(1U, static_cast<unsigned>(std::strtoul(value(), nullptr, 10)));
         }
-        else if (i + 1 < argc && arg == "--seed")
+        else if (arg == "--seed")
         {
-            seed = std::strtoul(argv[++i], nullptr, 10);
+            seed = std::strtoul(value(), nullptr, 10);
         }
-        else if (i + 1 < argc && arg == "--scale")
+        else if (arg == "--scale")
         {
-            scale = std::strtod(argv[++i], nullptr);
+            scale = std::strtod(value(), nullptr);
+        }
+        else if (arg.starts_with("-"))
+        {
+            std::fprintf(stderr, "unknown option: %s (see --help)\n", argv[i]);
+            return 2;
+        }
+        else if (modeName != nullptr)
+        {
+            std::fprintf(stderr, "more than one mode given: %s and %s\n", modeName, argv[i]);
+            return 2;
         }
         else
         {
-            std::fprintf(stderr, "unknown argument: %s\n", argv[i]);
-            return 2;
+            modeName = argv[i];
         }
+    }
+    if (modeName == nullptr)
+    {
+        usage(stderr);
+        return 2;
+    }
+    if (std::strcmp(modeName, "list") == 0)
+    {
+        list();
+        return 0;
     }
     if (!deviceId.empty())
     {
@@ -217,14 +281,14 @@ int main(int argc, char **argv)
     const Entry *entry{nullptr};
     for (const auto &candidate : registry)
     {
-        if (normalize(candidate.name) == normalize(argv[1]))
+        if (normalize(candidate.name) == normalize(modeName))
         {
             entry = &candidate;
         }
     }
     if (entry == nullptr)
     {
-        std::fprintf(stderr, "unknown mode: %s (try `list`)\n", argv[1]);
+        std::fprintf(stderr, "unknown mode: %s (try --list)\n", modeName);
         return 2;
     }
     randomSeed(seed);

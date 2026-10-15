@@ -92,7 +92,7 @@ void usage(std::FILE *out)
         std::fprintf(out, " %.*s", static_cast<int>(device.id.size()), device.id.data());
     }
     std::fprintf(out, "\n"
-                      "  --scale N           window points per mm of pixel pitch (default: 1.6)\n\n"
+                      "  --scale N           window points per mm of lamp (default: fit the lamp to a 512 point width)\n\n"
                       "output (default: a window on macOS, --terminal elsewhere):\n"
                       "  --terminal          draw ANSI LEDs in the terminal in real time\n"
                       "  --plain             print the last frame as text and exit\n"
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     unsigned fps{30U};
     unsigned tick{1U};
     unsigned long seed{1UL};
-    double scale{1.6};
+    double scale{0.0};
     bool fast{false};
     bool plain{false};
 #ifdef __APPLE__
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
     lamp.rows = GRID_ROWS;
     lamp.widthMm = static_cast<double>(GRID_COLUMNS * simDevice->pitchHorizontal);
     lamp.heightMm = static_cast<double>(GRID_ROWS * simDevice->pitchVertical);
-    lamp.scale = scale;
+    lamp.scale = scale > 0.0 ? scale : 512.0 / lamp.widthMm; // same width for every lamp unless --scale is given
     lamp.fps = fps;
     lamp.step = step;
     lamp.pixel = [](unsigned x, unsigned y) { return Display.getPixel(static_cast<uint8_t>(x), static_cast<uint8_t>(y)); };

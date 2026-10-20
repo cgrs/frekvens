@@ -69,8 +69,8 @@ printf "%s='true'\n" "$option" >>"$env_file"
 {
     echo
     echo "$pins" | sed 's/^/#define /'
-    [ -z "$write_wifi" ] || printf '#define WIFI_SSID "%s"\n' "$WIFI_SSID"
-    [ -z "$write_wifi" ] || printf '#define WIFI_KEY "%s"\n' "$WIFI_KEY"
+    [ -z "$write_wifi" ] || printf '#define WIFI_SSID "%s"\n' "$(printf %s "$WIFI_SSID" | sed 's/[\\"]/\\&/g')"
+    [ -z "$write_wifi" ] || printf '#define WIFI_KEY "%s"\n' "$(printf %s "$WIFI_KEY" | sed 's/[\\"]/\\&/g')"
 } >>"$secrets"
 
 "$@"

@@ -132,7 +132,8 @@ errors without pins, and with `WIFI_SSID` undeclared without credentials.
 restores both files afterwards, so the tree stays clean. A missing `.env` starts from `.env.example`. Wi-Fi can also go in
 `.env` (every key there becomes a `-D` define, and the wrapper then leaves Wi-Fi alone);
 otherwise they go in
-`.env.local` (also ignored, loaded by mise):
+`.env.local` (also ignored, loaded by mise). Prefer it for Wi-Fi: values in `.env` go through `sh` unescaped,
+so an SSID or key containing `<`, `>`, `&` or similar breaks the compile command, while `secrets.h` does not:
 
 ```
 WIFI_SSID=name
@@ -144,5 +145,6 @@ Default pins are the wiring from the `secrets.h` template: CS 1, SCLK 2, MOSI 3,
 Obegransad (SW1 5, SW2 6 for Frekvens). Builds without Wi-Fi settings use placeholders; the upload
 tasks refuse to run without them.
 
-Last check: Obegransad and Frekvens on `esp32dev` both build after the options migration (RAM 21.5%, flash 42.9%).
+Last check: Obegransad on `esp32dev` and `adafruit_qtpy_esp32s3_n4r2`, and Frekvens on `esp32dev`, build after the options
+migration (esp32dev RAM 21.5%, flash 42.9%; S3 N4R2 RAM 30.3%, flash 44.1%).
 Other boards and real hardware were not tried.

@@ -4,35 +4,52 @@ uv = "latest"
 
 [tasks.build]
 description = "Build the firmware"
-usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
-run = 'uv run --only-group platformio pio run -e "${usage_env}"'
+usage = '''
+arg "[device]" default="obegransad" help="obegransad or frekvens"
+arg "[env]" default="esp32dev" help="PlatformIO environment"
+'''
+run = 'scripts/with-config.sh "${usage_device}" uv run --only-group platformio pio run -e "${usage_env}"'
 
 [tasks.buildfs]
 description = "Build the Web app filesystem image"
-usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
-run = 'uv run --only-group platformio pio run -e "${usage_env}" -t buildfs'
+usage = '''
+arg "[device]" default="obegransad" help="obegransad or frekvens"
+arg "[env]" default="esp32dev" help="PlatformIO environment"
+'''
+run = 'scripts/with-config.sh "${usage_device}" uv run --only-group platformio pio run -e "${usage_env}" -t buildfs'
 
 [tasks.upload]
 description = "Upload the firmware (USB, or Wi-Fi with upload_protocol = espota)"
-usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
-run = 'uv run --only-group platformio pio run -e "${usage_env}" -t upload'
+usage = '''
+arg "[device]" default="obegransad" help="obegransad or frekvens"
+arg "[env]" default="esp32dev" help="PlatformIO environment"
+'''
+run = 'WIFI_REQUIRED=1 scripts/with-config.sh "${usage_device}" uv run --only-group platformio pio run -e "${usage_env}" -t upload'
 
 [tasks.uploadfs]
 description = "Upload the Web app filesystem image"
-usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
-run = 'uv run --only-group platformio pio run -e "${usage_env}" -t uploadfs'
+usage = '''
+arg "[device]" default="obegransad" help="obegransad or frekvens"
+arg "[env]" default="esp32dev" help="PlatformIO environment"
+'''
+run = 'WIFI_REQUIRED=1 scripts/with-config.sh "${usage_device}" uv run --only-group platformio pio run -e "${usage_env}" -t uploadfs'
 
 [tasks.flash]
 description = "Upload the firmware, then the Web app"
-usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+usage = '''
+arg "[device]" default="obegransad" help="obegransad or frekvens"
+arg "[env]" default="esp32dev" help="PlatformIO environment"
+'''
 run = [
-    'mise run upload "${usage_env}"',
-    'mise run uploadfs "${usage_env}"',
+    'mise run upload "${usage_device}" "${usage_env}"',
+    'mise run uploadfs "${usage_device}" "${usage_env}"',
 ]
 
 [tasks.monitor]
 description = "Serial monitor"
-usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+usage = '''
+arg "[env]" default="esp32dev" help="PlatformIO environment"
+'''
 run = 'uv run --only-group platformio pio device monitor -e "${usage_env}"'
 
 [tasks.lint]
@@ -46,3 +63,7 @@ run = 'make -C tools/simulator'
 [tasks."sim:check"]
 description = "Run every mode in the simulator under ASan/UBSan"
 run = 'make -C tools/simulator check'
+
+# Local, gitignored (/.env*): WIFI_SSID, WIFI_KEY and optional PIN_* overrides, see scripts/with-config.sh.
+[env]
+_.file = { path = ".env.local", redact = true }

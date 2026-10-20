@@ -108,31 +108,38 @@ Run the ESP32 build and the web type-check before relying on the migration.
 `pyproject.toml` groups, which `extra_script.py` syncs itself. `mise trust && mise install` once.
 
 ```
-mise run build [env]      # default esp32dev; env names are in platformio.ini
-mise run buildfs [env]    # Web app image
-mise run upload [env]     # USB, or Wi-Fi with upload_protocol = espota
-mise run uploadfs [env]
-mise run flash [env]      # upload + uploadfs
+mise run build [device] [env]      # device: obegransad (default) or frekvens; env: esp32dev by default
+mise run buildfs [device] [env]    # Web app image
+mise run upload [device] [env]     # USB, or Wi-Fi with upload_protocol = espota
+mise run uploadfs [device] [env]
+mise run flash [device] [env]      # upload + uploadfs
 mise run monitor [env]
 mise run lint
-mise run sim              # host simulator
+mise run sim                       # host simulator
 mise run sim:check
 ```
 
 The first build downloads the ESP32 toolchain into the gitignored `.platformio/`.
 
-### Building needs a device and pins
+### Device, pins and Wi-Fi
 
-The build reads only `.env` (not the process environment) and fails with `#error "Unknown device."`
-until `IKEA_FREKVENS` or `IKEA_OBEGRANSAD` is set there, and with `PIN_*` errors until
-`firmware/include/config/secrets.h` (a tracked template, all commented out) defines the pins. For a compile check, mirror CI:
+The build reads only `.env` (not the process environment) and `firmware/include/config/secrets.h`, both
+tracked templates. It fails with `#error "Unknown device."` without `IKEA_*` in `.env`, with `PIN_*`
+errors without pins, and with `WIFI_SSID` undeclared without credentials.
+
+`scripts/with-config.sh <device> <command>` appends the device, pins and Wi-Fi for one run and
+restores both files afterwards, so the tree stays clean. The mise build tasks use it. Settings go in
+`.env.local` (gitignored by `/.env*`, loaded by mise):
 
 ```
-echo "IKEA_OBEGRANSAD='true'" >> .env
-printf '#pragma once\n#define PIN_CS 1\n#define PIN_MOSI 2\n#define PIN_OE 3\n#define PIN_SCLK 4\n#define PIN_SW2 5\n#define WIFI_KEY "x"\n#define WIFI_SSID "x"\n' > firmware/include/config/secrets.h
-mise run build
-git checkout .env firmware/include/config/secrets.h   # both files are tracked: don't commit the edits
+WIFI_SSID=name
+WIFI_KEY=secret
+# optional pin overrides: PIN_CS PIN_SCLK PIN_MOSI PIN_OE PIN_SW1 PIN_SW2 PIN_MIC
 ```
 
-Last check: Obegransad on `esp32dev` builds after the options migration (RAM 21.5%, flash 42.9%).
-Frekvens and the other boards weren't built.
+Default pins are the wiring from the `secrets.h` template: CS 1, SCLK 2, MOSI 3, OE 4, and SW2 5 for
+Obegransad (SW1 5, SW2 6 for Frekvens). Builds without Wi-Fi settings use placeholders; the upload
+tasks refuse to run without them.
+
+Last check: Obegransad and Frekvens on `esp32dev` both build after the options migration (RAM 21.5%, flash 42.9%).
+Other boards and real hardware were not tried.

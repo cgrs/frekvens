@@ -105,6 +105,7 @@ void usage(std::FILE *out)
                       "  --state             print what the mode publishes\n"
                       "  --ha                print its Home Assistant discovery and exit\n"
                       "  --seed N            random seed (default: 1)\n"
+                      "  --boot              configure every mode and publish the retained state like the device does at boot\n"
                       "  --tick MS           clock step per loop (default: 1)\n\n"
                       "  --list              list the modes\n"
                       "  -h, --help          this text\n\n"
@@ -131,6 +132,7 @@ int main(int argc, char **argv)
         return 1;
     }
     const char *modeName{nullptr};
+    bool boot{false};
     unsigned long seconds{0UL};
     unsigned fps{30U};
     unsigned tick{1U};
@@ -168,6 +170,10 @@ int main(int argc, char **argv)
         {
             list();
             return 0;
+        }
+        else if (arg == "--boot")
+        {
+            boot = true;
         }
         else if (arg == "--fast")
         {
@@ -235,6 +241,29 @@ int main(int argc, char **argv)
         {
             modeName = argv[i];
         }
+    }
+    if (boot)
+    {
+        // What the device does at boot: every mode is created, loaded and configured (which publishes its options into
+        // the retained state), then the extension list is published.
+        for (const auto &candidate : registry)
+        {
+            std::unique_ptr<ModeModule> instance{candidate.make()};
+            instance->loadOptions();
+            instance->configure();
+        }
+        JsonDocument extensions;
+        JsonArray list{extensions["list"].to<JsonArray>()};
+        for (const char *extension : {"Button", "Message", "Playlist", "Screenshot", "WebSocket", "Infrared"})
+        {
+            list.add(extension);
+        }
+        Device.transmit(extensions.as<JsonObjectConst>(), "Extensions");
+        std::string retained;
+        serializeJson(Device.transmits, retained);
+        std::printf("boot ok: retained state %zu bytes (%zu as JSON)%s\n", Device.transmits.memoryUsage(), retained.size(),
+                    Device.transmits.overflowed() ? ", OVERFLOWED" : "");
+        return 0;
     }
     if (modeName == nullptr)
     {

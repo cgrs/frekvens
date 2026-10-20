@@ -13,7 +13,7 @@ MODES := Countdown Arrow AutoWalker BinaryEpoch Blinds Blink BreakoutClock Brigh
 	MeteorShower Metaballs PongClock Radar Rain Scanlines SpaceInvaders SparkleField Spiral Spotlight Stars \
 	Tetris Tron Wave WaveBars
 
-DEFS := -DTIME_ZONE='"UTC"' -DEXTENSION_HOMEASSISTANT=1 -DNAME='"simulator"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1)
+DEFS := -DARDUINOJSON_SLOT_ID_SIZE=2 -DARDUINOJSON_POOL_CAPACITY=128 -DTIME_ZONE='"UTC"' -DEXTENSION_HOMEASSISTANT=1 -DNAME='"simulator"' -DPIN_CS=0 -DPIN_SCLK=1 -DPIN_MOSI=2 -DPIN_OE=3 $(foreach m,$(MODES),-DMODE_$(shell echo $(m) | tr a-z A-Z)=1)
 CXXFLAGS := -std=c++20 -O2 -Wall -Wextra -Wno-unused-parameter -Wno-reorder-ctor -Wno-sign-compare -Wno-unused-private-field -include Arduino.h -Ishims -Ibuild -I$(BUILD) -I$(FW)/include $(DEFS)
 SRCS := shims/Arduino.cpp shims/Trigger.cpp shims/DisplayService.cpp shims/nvs.cpp \
 	$(FW)/src/modules/ModeModule.cpp $(FW)/src/modules/FontModule.cpp $(FW)/src/modules/HandlerModule.cpp $(FW)/src/modules/ServiceModule.cpp \

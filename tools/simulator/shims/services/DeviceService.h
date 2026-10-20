@@ -8,6 +8,7 @@ class DeviceService
 {
 public:
     bool verbose{false};
+    JsonDocument transmits; // retained payloads, as on the device
 
     void transmit(JsonObjectConst payload, std::string_view source, bool retain = true);
 };

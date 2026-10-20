@@ -14,6 +14,10 @@ DeviceService &Device{*new DeviceService()};
 
 void DeviceService::transmit(JsonObjectConst payload, std::string_view source, bool retain)
 {
+    if (retain)
+    {
+        transmits[source].set(payload);
+    }
     if (verbose)
     {
         std::string json;

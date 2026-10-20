@@ -120,3 +120,19 @@ mise run sim:check
 ```
 
 The first build downloads the ESP32 toolchain into the gitignored `.platformio/`.
+
+### Building needs a device and pins
+
+The build reads only `.env` (not the process environment) and fails with `#error "Unknown device."`
+until `IKEA_FREKVENS` or `IKEA_OBEGRANSAD` is set there, and with `PIN_*` errors until
+`firmware/include/config/secrets.h` (a tracked template, all commented out) defines the pins. For a compile check, mirror CI:
+
+```
+echo "IKEA_OBEGRANSAD='true'" >> .env
+printf '#pragma once\n#define PIN_CS 1\n#define PIN_MOSI 2\n#define PIN_OE 3\n#define PIN_SCLK 4\n#define PIN_SW2 5\n#define WIFI_KEY "x"\n#define WIFI_SSID "x"\n' > firmware/include/config/secrets.h
+mise run build
+git checkout .env firmware/include/config/secrets.h   # both files are tracked: don't commit the edits
+```
+
+Last check: Obegransad on `esp32dev` builds after the options migration (RAM 21.5%, flash 42.9%).
+Frekvens and the other boards weren't built.

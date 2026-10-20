@@ -31,8 +31,8 @@ void DeviceService::begin()
     gpio_hold_en(static_cast<gpio_num_t>(PIN_SW1));
 #endif // PIN_SW1
 #ifdef PIN_SW2
+    gpio_hold_dis(static_cast<gpio_num_t>(PIN_SW2));
     gpio_pullup_en(static_cast<gpio_num_t>(PIN_SW2));
-    gpio_hold_en(static_cast<gpio_num_t>(PIN_SW2));
 #endif // PIN_SW2
 #if defined(PIN_INT) || defined(PIN_SW1) || defined(PIN_SW2)
 #if SOC_GPIO_SUPPORT_HOLD_IO_IN_DSLP && !SOC_GPIO_SUPPORT_HOLD_SINGLE_IO_IN_DSLP

@@ -2,7 +2,8 @@
 # Usage: scripts/with-config.sh <obegransad|frekvens> <command...>
 #
 # The build reads the device from .env and the pins from firmware/include/config/secrets.h, and both files are
-# tracked. This appends the device and pins for the run and restores both files afterwards.
+# local (.env is gitignored, secrets.h is a tracked template). This appends the device and pins for the run and
+# restores both files afterwards. A missing .env starts from .env.example and is removed again.
 #
 # Pins default to the wiring in secrets.h and can be overridden with PIN_CS, PIN_SCLK, PIN_MOSI, PIN_OE, PIN_SW1,
 # PIN_SW2 and PIN_MIC. WIFI_SSID and WIFI_KEY can be in .env, or in .env.local (mise loads it); without them a build uses
@@ -38,7 +39,7 @@ PIN_MIC $PIN_MIC"
 esac
 
 # Credentials in .env already become -D defines (every key there does), so leave Wi-Fi alone in that case.
-if grep -q '^WIFI_SSID=' .env && grep -q '^WIFI_KEY=' .env; then
+if grep -qs '^WIFI_SSID=' .env && grep -qs '^WIFI_KEY=' .env; then
     write_wifi=
 elif [ -z "${WIFI_SSID:-}" ] || [ -z "${WIFI_KEY:-}" ]; then
     if [ -n "${WIFI_REQUIRED:-}" ]; then
@@ -56,9 +57,13 @@ fi
 env_file=.env
 secrets=firmware/include/config/secrets.h
 backup=$(mktemp -d)
-cp "$env_file" "$backup/env"
+if [ -f "$env_file" ]; then
+    cp "$env_file" "$backup/env"
+else
+    cp .env.example "$env_file" # a missing .env starts from the template, which enables the default modes
+fi
 cp "$secrets" "$backup/secrets"
-trap 'cp "$backup/env" "$env_file"; cp "$backup/secrets" "$secrets"; rm -rf "$backup"' EXIT INT TERM
+trap 'if [ -f "$backup/env" ]; then cp "$backup/env" "$env_file"; else rm -f "$env_file"; fi; cp "$backup/secrets" "$secrets"; rm -rf "$backup"' EXIT INT TERM
 
 printf "%s='true'\n" "$option" >>"$env_file"
 {

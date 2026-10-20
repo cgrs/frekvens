@@ -123,15 +123,16 @@ The first build downloads the ESP32 toolchain into the gitignored `.platformio/`
 
 ### Device, pins and Wi-Fi
 
-The build reads only `.env` (not the process environment) and `firmware/include/config/secrets.h`, both
-tracked templates. It fails with `#error "Unknown device."` without `IKEA_*` in `.env`, with `PIN_*`
+The build reads only `.env` (not the process environment) and `firmware/include/config/secrets.h`.
+`.env` is gitignored; `.env.example` is the tracked template (the defaults enable the modes and extensions).
+`secrets.h` is still a tracked template. The build fails with `#error "Unknown device."` without `IKEA_*` in `.env`, with `PIN_*`
 errors without pins, and with `WIFI_SSID` undeclared without credentials.
 
 `scripts/with-config.sh <device> <command>` appends the device, pins and Wi-Fi for one run and
-restores both files afterwards, so the tree stays clean. The mise build tasks use it. Wi-Fi can also go in
-`.env` (every key there becomes a `-D` define, and the wrapper then leaves Wi-Fi alone), but `.env` is
-tracked despite the `/.env*` ignore rule, so a plain `git add -A` would commit it. Prefer
-`.env.local` (really ignored, loaded by mise):
+restores both files afterwards, so the tree stays clean. A missing `.env` starts from `.env.example`. Wi-Fi can also go in
+`.env` (every key there becomes a `-D` define, and the wrapper then leaves Wi-Fi alone);
+otherwise they go in
+`.env.local` (also ignored, loaded by mise):
 
 ```
 WIFI_SSID=name

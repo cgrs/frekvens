@@ -98,7 +98,7 @@ board = esp32-s3-devkitc-1 ; Board ID
 
 ### Environment Template
 
-Add one of the following to [`.env`](https://github.com/VIPnytt/Frekvens/blob/main/.env):
+Copy [`.env.example`](.env.example) to `.env` (gitignored), then add one of the following to it:
 
 ```ini
 IKEA_FREKVENS='true' # IKEA Frekvens

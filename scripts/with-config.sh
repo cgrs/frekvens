@@ -5,7 +5,7 @@
 # tracked. This appends the device and pins for the run and restores both files afterwards.
 #
 # Pins default to the wiring in secrets.h and can be overridden with PIN_CS, PIN_SCLK, PIN_MOSI, PIN_OE, PIN_SW1,
-# PIN_SW2 and PIN_MIC. WIFI_SSID and WIFI_KEY come from .env.local (mise loads it); without them a build uses
+# PIN_SW2 and PIN_MIC. WIFI_SSID and WIFI_KEY can be in .env, or in .env.local (mise loads it); without them a build uses
 # placeholders, and WIFI_REQUIRED=1 (the upload tasks) refuses to run.
 set -eu
 
@@ -37,14 +37,20 @@ PIN_MIC $PIN_MIC"
     ;;
 esac
 
-if [ -z "${WIFI_SSID:-}" ] || [ -z "${WIFI_KEY:-}" ]; then
+# Credentials in .env already become -D defines (every key there does), so leave Wi-Fi alone in that case.
+if grep -q '^WIFI_SSID=' .env && grep -q '^WIFI_KEY=' .env; then
+    write_wifi=
+elif [ -z "${WIFI_SSID:-}" ] || [ -z "${WIFI_KEY:-}" ]; then
     if [ -n "${WIFI_REQUIRED:-}" ]; then
-        echo "set WIFI_SSID and WIFI_KEY in .env.local before uploading" >&2
+        echo "set WIFI_SSID and WIFI_KEY in .env or .env.local before uploading" >&2
         exit 2
     fi
     echo "WIFI_SSID or WIFI_KEY not set, using placeholders (fine for a build, not for flashing)" >&2
     WIFI_SSID=${WIFI_SSID:-redacted}
     WIFI_KEY=${WIFI_KEY:-redacted}
+    write_wifi=1
+else
+    write_wifi=1
 fi
 
 env_file=.env
@@ -58,8 +64,8 @@ printf "%s='true'\n" "$option" >>"$env_file"
 {
     echo
     echo "$pins" | sed 's/^/#define /'
-    printf '#define WIFI_SSID "%s"\n' "$WIFI_SSID"
-    printf '#define WIFI_KEY "%s"\n' "$WIFI_KEY"
+    [ -z "$write_wifi" ] || printf '#define WIFI_SSID "%s"\n' "$WIFI_SSID"
+    [ -z "$write_wifi" ] || printf '#define WIFI_KEY "%s"\n' "$WIFI_KEY"
 } >>"$secrets"
 
 "$@"

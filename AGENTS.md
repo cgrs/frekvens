@@ -128,8 +128,10 @@ tracked templates. It fails with `#error "Unknown device."` without `IKEA_*` in 
 errors without pins, and with `WIFI_SSID` undeclared without credentials.
 
 `scripts/with-config.sh <device> <command>` appends the device, pins and Wi-Fi for one run and
-restores both files afterwards, so the tree stays clean. The mise build tasks use it. Settings go in
-`.env.local` (gitignored by `/.env*`, loaded by mise):
+restores both files afterwards, so the tree stays clean. The mise build tasks use it. Wi-Fi can also go in
+`.env` (every key there becomes a `-D` define, and the wrapper then leaves Wi-Fi alone), but `.env` is
+tracked despite the `/.env*` ignore rule, so a plain `git add -A` would commit it. Prefer
+`.env.local` (really ignored, loaded by mise):
 
 ```
 WIFI_SSID=name

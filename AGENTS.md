@@ -101,3 +101,22 @@ Run the ESP32 build and the web type-check before relying on the migration.
   `git -c credential.helper='!gh auth git-credential' push`. Pushing `.github/workflows/` needs the
   `workflow` scope on the token.
 - Shell is fish: no bash-only constructs in ad hoc commands.
+
+## Toolchain (mise)
+
+`mise.toml` pins Python 3.10 and uv; PlatformIO, Node and the script dependencies come from the
+`pyproject.toml` groups, which `extra_script.py` syncs itself. `mise trust && mise install` once.
+
+```
+mise run build [env]      # default esp32dev; env names are in platformio.ini
+mise run buildfs [env]    # Web app image
+mise run upload [env]     # USB, or Wi-Fi with upload_protocol = espota
+mise run uploadfs [env]
+mise run flash [env]      # upload + uploadfs
+mise run monitor [env]
+mise run lint
+mise run sim              # host simulator
+mise run sim:check
+```
+
+The first build downloads the ESP32 toolchain into the gitignored `.platformio/`.

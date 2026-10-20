@@ -1,0 +1,48 @@
+[tools]
+python = "3.10"
+uv = "latest"
+
+[tasks.build]
+description = "Build the firmware"
+usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+run = 'uv run --only-group platformio pio run -e "${usage_env}"'
+
+[tasks.buildfs]
+description = "Build the Web app filesystem image"
+usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+run = 'uv run --only-group platformio pio run -e "${usage_env}" -t buildfs'
+
+[tasks.upload]
+description = "Upload the firmware (USB, or Wi-Fi with upload_protocol = espota)"
+usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+run = 'uv run --only-group platformio pio run -e "${usage_env}" -t upload'
+
+[tasks.uploadfs]
+description = "Upload the Web app filesystem image"
+usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+run = 'uv run --only-group platformio pio run -e "${usage_env}" -t uploadfs'
+
+[tasks.flash]
+description = "Upload the firmware, then the Web app"
+usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+run = [
+    'mise run upload "${usage_env}"',
+    'mise run uploadfs "${usage_env}"',
+]
+
+[tasks.monitor]
+description = "Serial monitor"
+usage = 'arg "[env]" default="esp32dev" help="PlatformIO environment"'
+run = 'uv run --only-group platformio pio device monitor -e "${usage_env}"'
+
+[tasks.lint]
+description = "Lint platformio.ini"
+run = 'uv run --only-group platformio pio project config --lint'
+
+[tasks.sim]
+description = "Build the host simulator (tools/simulator)"
+run = 'make -C tools/simulator'
+
+[tasks."sim:check"]
+description = "Run every mode in the simulator under ASan/UBSan"
+run = 'make -C tools/simulator check'
